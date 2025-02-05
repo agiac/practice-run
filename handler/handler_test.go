@@ -42,12 +42,15 @@ func (s *Suite) TestRun() {
 		s.Require().Equal(101, res.StatusCode)
 
 		// When
+		err = handler.NewCreateRoomMessage("room_1").Send(cn)
+		s.NoError(err)
+
 		mt, msg, err := cn.ReadMessage()
-		s.Require().NoError(err)
+		s.NoError(err)
 
 		// Then
-		s.Require().Equal(websocket.TextMessage, mt)
-		s.Require().Equal("create a room", string(msg))
+		s.Equal(websocket.TextMessage, mt)
+		s.Equal(`{"type":"info","body":{"message":"room room_1 created"}}`, string(msg))
 	})
 
 	s.Run("join a room", func() {
