@@ -1,23 +1,36 @@
 package handler2
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http"
-	"practice-run/messages"
 
 	"github.com/gorilla/websocket"
 )
 
-type Handler struct {
-	u *websocket.Upgrader
+//go:generate mockgen -destination mocks/chat_service_mock.go -package mocks . ChatService
+type ChatService interface {
+	JoinChannel(ctx context.Context, username, channelName string) error
+	LeaveChannel(ctx context.Context, username, channelName string) error
+	SendMessage(ctx context.Context, username, channelName, message string) error
+	SendDirectMessage(ctx context.Context, sender, recipient, message string) error
+	ListChannels(ctx context.Context) ([]string, error)
+	ListChannelUsers(ctx context.Context, channelName string) ([]string, error)
 }
 
-func NewHandler(u *websocket.Upgrader) *Handler {
-	return &Handler{u: u}
+type Handler struct {
+	u *websocket.Upgrader
+	s ChatService
+}
+
+func NewHandler(u *websocket.Upgrader, s ChatService) *Handler {
+	return &Handler{u: u, s: s}
 }
 
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
 	// Read credentials, skip validation
 	username, _, ok := r.BasicAuth()
 	if !ok {
@@ -40,7 +53,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}(conn)
 
 	// Send welcome message upon successful connection
-	h.WriteMessage(conn, fmt.Sprintf("Welcome, %s!", username))
+	h.WriteMessage(conn, fmt.Sprintf("welcome, %s!", username))
 
 	// Handle messages
 	for {
@@ -56,7 +69,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Handle message
-		msg, err := messages.ParseMessage(string(raw))
+		msg, err := ParseMessage(string(raw))
 		if err != nil {
 			h.WriteMessage(conn, fmt.Sprintf("bad request: failed to parse message: %v", err))
 			continue
@@ -64,23 +77,36 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 		// Type switch
 		switch m := msg.(type) {
-		case *messages.JoinChannelCommand:
+		case *JoinChannelCommand:
+			err = h.s.JoinChannel(ctx, username, m.ChannelName)
+			if err != nil {
+				h.WriteMessage(conn, fmt.Sprintf("failed to join channel: %v", err))
+				continue
+			}
 			h.WriteMessage(conn, fmt.Sprintf("%s joined channel #%s", username, m.ChannelName))
+		case *LeaveChannelCommand:
+			// TODO: implement
+		case *SendMessageCommand:
+			// TODO: implement
+		case *SendDirectMessageCommand:
 		// TODO: implement
-		case *messages.LeaveChannelCommand:
+		case *ListChannelsCommand:
 			// TODO: implement
-		case *messages.SendMessageCommand:
-			// TODO: implement
-		case *messages.SendDirectMessageCommand:
-		// TODO: implement
-		case *messages.ListChannelsCommand:
-			// TODO: implement
-		case *messages.ListChannelUsersCommand:
+		case *ListChannelUsersCommand:
 			// TODO: implement
 		default:
 			log.Printf("Error: unsupported message type: %T", m)
 			h.WriteMessage(conn, "server error")
 		}
+	}
+}
+
+func (h *Handler) handleJoinChannel(ctx context.Context, conn *websocket.Conn, username string, cmd *JoinChannelCommand) {
+	err := h.s.JoinChannel(ctx, username, cmd.ChannelName)
+	if err != nil {
+		log.Printf("Debug: %s failed to join channel: %v", username, err)
+		h.WriteMessage(conn, fmt.Sprintf("failed to join channel: %v", err))
+		return
 	}
 }
 
