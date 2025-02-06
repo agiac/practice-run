@@ -1,184 +1,277 @@
-package handler_test
+package handler
 
 import (
+	"encoding/base64"
+	"errors"
+	"fmt"
+	"net/http"
 	"net/http/httptest"
-	"net/url"
-	"practice-run/handler"
+	"practice-run/handler/mocks"
+	"strings"
 	"testing"
 
 	"github.com/gorilla/websocket"
 	"github.com/stretchr/testify/suite"
+	"go.uber.org/mock/gomock"
 )
 
 type Suite struct {
 	suite.Suite
+	ctrl *gomock.Controller
+	s    *mocks.MockChatService
+	h    *Handler
 }
 
 func TestSuite(t *testing.T) {
 	suite.Run(t, new(Suite))
 }
 
-/*
-The goal is to create a simple server in the Go language, similar to Slack, with rooms/channels, participants, and an option to send a text message.
-As for the client, you can use the developer console built into the web browsers. There is no need to create your own client solution.
-The service must allow clients to connect via the WebSocket interface and support the following commands:
-create a room, join a room, leave a room, and send a message to a room—the message should be broadcast to other room participants.
-*/
+func (s *Suite) SetupTest() {
+	s.ctrl = gomock.NewController(s.T())
+	s.s = mocks.NewMockChatService(s.ctrl)
+	s.h = NewHandler(&websocket.Upgrader{}, s.s)
+}
 
-func (s *Suite) TestRun() {
-	s.Run("create a room", func() {
+func (s *Suite) TearDownTest() {
+	s.ctrl.Finish()
+}
+
+func (s *Suite) TestAuthentication() {
+	s.Run("reject unauthenticated requests", func() {
 		// Given
-		h := handler.NewWSServer()
-
-		server := httptest.NewServer(h)
+		server := httptest.NewServer(s.h)
 		defer server.Close()
 
-		u := url.URL{
-			Scheme: "ws",
-			Host:   server.Listener.Addr().String(),
-		}
-		cn, res, err := websocket.DefaultDialer.Dial(u.String(), nil)
-		s.Require().NoError(err)
-		s.Require().Equal(101, res.StatusCode)
-
 		// When
-		err = handler.NewCreateRoomMessage("room_1").Send(cn)
-		s.NoError(err)
-
-		mt, msg, err := cn.ReadMessage()
-		s.NoError(err)
+		cn1, res, err := websocket.DefaultDialer.Dial(wsUrl(server), nil)
 
 		// Then
-		s.Equal(websocket.TextMessage, mt)
-		s.Equal(`{"type":"info","body":{"message":"room room_1 created"}}`, string(msg))
+		s.Error(err)
+		s.Equal(http.StatusUnauthorized, res.StatusCode)
+		s.Nil(cn1)
 	})
 
-	s.Run("join a room", func() {
+	s.Run("accept authenticated requests", func() {
 		// Given
-		h := handler.NewWSServer()
-
-		server := httptest.NewServer(h)
+		server := httptest.NewServer(s.h)
 		defer server.Close()
 
-		u := url.URL{
-			Scheme: "ws",
-			Host:   server.Listener.Addr().String(),
-		}
-		cn, res, err := websocket.DefaultDialer.Dial(u.String(), nil)
-		s.Require().NoError(err)
-		s.Require().Equal(101, res.StatusCode)
+		s.s.EXPECT().GetUpdates(gomock.Any(), "user_1").Return(make(chan string), nil)
 
 		// When
-		err = handler.NewJoinRoomMessage("room_1").Send(cn)
-		s.NoError(err)
+		conn, res, err := websocket.DefaultDialer.Dial(wsUrl(server), http.Header{
+			"Authorization": []string{fmt.Sprintf("Basic %s", base64.StdEncoding.EncodeToString([]byte("user_1:password")))},
+		})
 
-		mt, msg, err := cn.ReadMessage()
-		s.NoError(err)
+		s.Require().NoError(err)
+		s.Require().Equal(http.StatusSwitchingProtocols, res.StatusCode)
+		s.Require().NotNil(conn)
+
+		mt, msg, err := conn.ReadMessage()
 
 		// Then
+		s.NoError(err)
 		s.Equal(websocket.TextMessage, mt)
-		s.Equal(`{"type":"info","body":{"message":"joined room room_1"}}`, string(msg))
+		s.Equal("welcome, user_1!", string(msg))
 	})
+}
 
-	s.Run("leave a room", func() {
+func (s *Suite) TestJoinChannel() {
+	s.Run("join a channel", func() {
 		// Given
-		h := handler.NewWSServer()
-
-		server := httptest.NewServer(h)
+		server := httptest.NewServer(s.h)
 		defer server.Close()
 
-		u := url.URL{
-			Scheme: "ws",
-			Host:   server.Listener.Addr().String(),
-		}
-		cn, res, err := websocket.DefaultDialer.Dial(u.String(), nil)
-		s.Require().NoError(err)
-		s.Require().Equal(101, res.StatusCode)
+		s.s.EXPECT().GetUpdates(gomock.Any(), "user_1").Return(make(chan string), nil)
+		s.s.EXPECT().JoinChannel(gomock.Any(), "user_1", "room_1").Return(nil)
+
+		conn := s.createConnection(server, "user_1")
 
 		// When
-		err = handler.NewLeaveRoomMessage("room_1").Send(cn)
+		err := conn.WriteMessage(websocket.TextMessage, []byte(`/join #room_1`))
 		s.NoError(err)
 
-		mt, msg, err := cn.ReadMessage()
-		s.NoError(err)
+		_, msg1, _ := conn.ReadMessage()
+		_, msg2, _ := conn.ReadMessage()
 
 		// Then
-		s.Equal(websocket.TextMessage, mt)
-		s.Equal(`{"type":"info","body":{"message":"left room room_1"}}`, string(msg))
+		s.Equal("welcome, user_1!", string(msg1))
+		s.Equal(`user_1 joined channel #room_1`, string(msg2))
 	})
 
-	s.Run("send a message to a room", func() {
+	s.Run("error", func() {
 		// Given
-		h := handler.NewWSServer()
-
-		server := httptest.NewServer(h)
+		server := httptest.NewServer(s.h)
 		defer server.Close()
 
-		u := url.URL{
-			Scheme: "ws",
-			Host:   server.Listener.Addr().String(),
-		}
-		cn1, res, err := websocket.DefaultDialer.Dial(u.String(), nil)
-		s.Require().NoError(err)
-		s.Require().Equal(101, res.StatusCode)
+		s.s.EXPECT().GetUpdates(gomock.Any(), "user_1").Return(make(chan string), nil)
+		s.s.EXPECT().JoinChannel(gomock.Any(), "user_1", "room_1").Return(errors.New("some error"))
 
-		cn2, res, err := websocket.DefaultDialer.Dial(u.String(), nil)
-		s.Require().NoError(err)
-		s.Require().Equal(101, res.StatusCode)
+		conn := s.createConnection(server, "user_1")
 
 		// When
-		err = handler.NewCreateRoomMessage("room_1").Send(cn1)
+		err := conn.WriteMessage(websocket.TextMessage, []byte(`/join #room_1`))
 		s.NoError(err)
 
-		err = handler.NewJoinRoomMessage("room_1").Send(cn2)
-		s.NoError(err)
-
-		err = handler.NewSendMessageToRoomMessage("room_1", "hello").Send(cn1)
-		s.NoError(err)
-
-		mt, msg, err := cn2.ReadMessage()
-		s.NoError(err)
+		_, msg1, _ := conn.ReadMessage()
+		_, msg2, _ := conn.ReadMessage()
 
 		// Then
-		s.Equal(websocket.TextMessage, mt)
-		s.Equal(`{"type":"info","body":{"message":"hello"}}`, string(msg))
+		s.Equal("welcome, user_1!", string(msg1))
+		s.Equal(`failed to join channel: some error`, string(msg2))
 	})
+}
 
-	s.Run("broadcast message to other room participants", func() {
+func (s *Suite) TestLeaveChannel() {
+	s.Run("leave a channel", func() {
 		// Given
-		h := handler.NewWSServer()
-
-		server := httptest.NewServer(h)
+		server := httptest.NewServer(s.h)
 		defer server.Close()
 
-		u := url.URL{
-			Scheme: "ws",
-			Host:   server.Listener.Addr().String(),
-		}
-		cn1, res, err := websocket.DefaultDialer.Dial(u.String(), nil)
-		s.Require().NoError(err)
-		s.Require().Equal(101, res.StatusCode)
+		s.s.EXPECT().GetUpdates(gomock.Any(), "user_1").Return(make(chan string), nil)
+		s.s.EXPECT().JoinChannel(gomock.Any(), "user_1", "room_1").Return(nil)
+		s.s.EXPECT().LeaveChannel(gomock.Any(), "user_1", "room_1").Return(nil)
 
-		cn2, res, err := websocket.DefaultDialer.Dial(u.String(), nil)
-		s.Require().NoError(err)
-		s.Require().Equal(101, res.StatusCode)
+		conn := s.createConnection(server, "user_1")
 
 		// When
-		err = handler.NewCreateRoomMessage("room_1").Send(cn1)
+		err := conn.WriteMessage(websocket.TextMessage, []byte(`/join #room_1`))
 		s.NoError(err)
 
-		err = handler.NewJoinRoomMessage("room_1").Send(cn2)
+		err = conn.WriteMessage(websocket.TextMessage, []byte(`/leave #room_1`))
 		s.NoError(err)
 
-		err = handler.NewSendMessageToRoomMessage("room_1", "hello").Send(cn1)
-		s.NoError(err)
-
-		mt, msg, err := cn1.ReadMessage()
-		s.NoError(err)
+		_, msg1, _ := conn.ReadMessage()
+		_, msg2, _ := conn.ReadMessage()
+		_, msg3, _ := conn.ReadMessage()
 
 		// Then
-		s.Equal(websocket.TextMessage, mt)
-		s.Equal(`{"type":"info","body":{"message":"hello"}}`, string(msg))
+		s.Equal("welcome, user_1!", string(msg1))
+		s.Equal(`user_1 joined channel #room_1`, string(msg2))
+		s.Equal(`user_1 left channel #room_1`, string(msg3))
 	})
 
+	s.Run("error", func() {
+		// Given
+		server := httptest.NewServer(s.h)
+		defer server.Close()
+
+		s.s.EXPECT().GetUpdates(gomock.Any(), "user_1").Return(make(chan string), nil)
+		s.s.EXPECT().JoinChannel(gomock.Any(), "user_1", "room_1").Return(nil)
+		s.s.EXPECT().LeaveChannel(gomock.Any(), "user_1", "room_1").Return(errors.New("some error"))
+
+		conn := s.createConnection(server, "user_1")
+
+		// When
+		err := conn.WriteMessage(websocket.TextMessage, []byte(`/join #room_1`))
+		s.NoError(err)
+		err = conn.WriteMessage(websocket.TextMessage, []byte(`/leave #room_1`))
+		s.NoError(err)
+
+		_, msg1, _ := conn.ReadMessage()
+		_, msg2, _ := conn.ReadMessage()
+		_, msg3, _ := conn.ReadMessage()
+
+		// Then
+		s.Equal("welcome, user_1!", string(msg1))
+		s.Equal(`user_1 joined channel #room_1`, string(msg2))
+		s.Equal(`failed to leave channel: some error`, string(msg3))
+	})
+}
+
+func (s *Suite) TestSendMessage() {
+	s.Run("ok", func() {
+		// Given
+		server := httptest.NewServer(s.h)
+		defer server.Close()
+
+		s.s.EXPECT().GetUpdates(gomock.Any(), "user_1").Return(make(chan string), nil)
+		s.s.EXPECT().JoinChannel(gomock.Any(), "user_1", "room_1").Return(nil)
+		s.s.EXPECT().SendMessage(gomock.Any(), "user_1", "room_1", "hello, world!").Return(nil)
+
+		conn := s.createConnection(server, "user_1")
+
+		// When
+		s.writeMessage(conn, `/join #room_1`)
+		s.writeMessage(conn, `/msg #room_1 hello, world!`)
+
+		_, msg1, _ := conn.ReadMessage()
+		_, msg2, _ := conn.ReadMessage()
+		_, msg3, _ := conn.ReadMessage()
+
+		// Then
+		s.Equal("welcome, user_1!", string(msg1))
+		s.Equal(`user_1 joined channel #room_1`, string(msg2))
+		s.Equal(`#room_1: @user_1: hello, world!`, string(msg3))
+	})
+
+	s.Run("error", func() {
+		// Given
+		server := httptest.NewServer(s.h)
+		defer server.Close()
+
+		s.s.EXPECT().GetUpdates(gomock.Any(), "user_1").Return(make(chan string), nil)
+		s.s.EXPECT().JoinChannel(gomock.Any(), "user_1", "room_1").Return(nil)
+		s.s.EXPECT().SendMessage(gomock.Any(), "user_1", "room_1", "hello, world!").Return(errors.New("some error"))
+
+		conn := s.createConnection(server, "user_1")
+
+		// When
+		s.writeMessage(conn, `/join #room_1`)
+		s.writeMessage(conn, `/msg #room_1 hello, world!`)
+
+		_, msg1, _ := conn.ReadMessage()
+		_, msg2, _ := conn.ReadMessage()
+		_, msg3, _ := conn.ReadMessage()
+
+		// Then
+		s.Equal("welcome, user_1!", string(msg1))
+		s.Equal(`user_1 joined channel #room_1`, string(msg2))
+		s.Equal(`failed to send message: some error`, string(msg3))
+	})
+}
+
+func (s *Suite) TestReceiveUpdate() {
+	// Given
+	server := httptest.NewServer(s.h)
+	defer server.Close()
+
+	updates := make(chan string)
+	s.s.EXPECT().GetUpdates(gomock.Any(), "user_1").Return(updates, nil)
+
+	conn := s.createConnection(server, "user_1")
+
+	// When
+	updates <- "this is an update"
+	updates <- "this is another update"
+
+	_, msg1, _ := conn.ReadMessage()
+	_, msg2, _ := conn.ReadMessage()
+	_, msg3, _ := conn.ReadMessage()
+
+	// Then
+	s.Equal("welcome, user_1!", string(msg1))
+	s.Equal(`this is an update`, string(msg2))
+	s.Equal(`this is another update`, string(msg3))
+}
+
+func (s *Suite) createConnection(server *httptest.Server, userName string) *websocket.Conn {
+	conn, res, err := websocket.DefaultDialer.Dial(wsUrl(server), http.Header{
+		"Authorization": []string{fmt.Sprintf("Basic %s", base64.StdEncoding.EncodeToString([]byte(userName+":password")))},
+	})
+
+	s.Require().NoError(err)
+	s.Require().Equal(http.StatusSwitchingProtocols, res.StatusCode)
+	s.Require().NotNil(conn)
+
+	return conn
+}
+
+func (s *Suite) writeMessage(conn *websocket.Conn, message string) {
+	err := conn.WriteMessage(websocket.TextMessage, []byte(message))
+	s.NoError(err)
+}
+
+func wsUrl(server *httptest.Server) string {
+	return strings.ReplaceAll(server.URL, "http", "ws")
 }

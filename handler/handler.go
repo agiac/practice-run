@@ -2,39 +2,45 @@ package handler
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
-	"sync/atomic"
 
 	"github.com/gorilla/websocket"
 )
 
-type WSHandler interface {
-	ServeWS(ctx context.Context, msg io.Reader, conn *websocket.Conn)
+//go:generate mockgen -destination mocks/chat_service_mock.go -package mocks . ChatService
+type ChatService interface {
+	JoinChannel(ctx context.Context, username, channelName string) error
+	LeaveChannel(ctx context.Context, username, channelName string) error
+	SendMessage(ctx context.Context, username, channelName, message string) error
+	GetUpdates(ctx context.Context, username string) (<-chan string, error)
 }
 
-type WSServer struct {
-	u websocket.Upgrader
-	h WSHandler
+type Handler struct {
+	u *websocket.Upgrader
+	s ChatService
 }
 
-func NewWSServer(u websocket.Upgrader, h WSHandler) *WSServer {
-	return &WSServer{
-		u: u,
-		h: h,
+func NewHandler(u *websocket.Upgrader, s ChatService) *Handler {
+	return &Handler{u: u, s: s}
+}
+
+func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	username, _, ok := r.BasicAuth()
+	if !ok {
+		log.Printf("Debug: unauthorized request")
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
 	}
-}
 
-var userIdCounter = atomic.Int32{}
+	// skip authentication for now
 
-func (h *WSServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	conn, err := h.u.Upgrade(w, r, nil)
 	if err != nil {
 		log.Printf("Error: failed to upgrade connection: %v", err)
-		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
@@ -45,145 +51,97 @@ func (h *WSServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}(conn)
 
-	// Assign identifier to the user
-	userId := userIdCounter.Add(1)
+	// Send welcome message upon successful connection
+	h.WriteMessage(conn, fmt.Sprintf("welcome, %s!", username))
 
+	// Get updates
+	updates, err := h.s.GetUpdates(ctx, username)
+	if err != nil {
+		log.Printf("Error: failed to get updates stream for user %s: %v", username, err)
+		return
+	}
+
+	go func() {
+		for {
+			select {
+			case update := <-updates:
+				h.WriteMessage(conn, update)
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+
+	// Handle messages
 	for {
-		mt, reader, err := conn.NextReader()
+		mt, raw, err := conn.ReadMessage()
 		if err != nil {
-			log.Printf("Error: failed to read message: %v", err)
+			log.Printf("Error: failed to read message, breaking connection: %v", err)
 			break
 		}
 
 		if mt != websocket.TextMessage {
-			_ = NewErrorMessage("only text messages are supported").Send(conn)
-			break
+			h.WriteMessage(conn, "bad request: only text messages are supported")
+			continue
 		}
 
-		var msg GenericMessage
-		err = json.NewDecoder(reader).Decode(&msg)
+		// Handle message
+		msg, err := ParseMessage(string(raw))
 		if err != nil {
-			_ = NewErrorMessage("failed to unmarshal message").Send(conn)
+			h.WriteMessage(conn, fmt.Sprintf("bad request: failed to parse message: %v", err))
+			continue
 		}
 
-		switch msg.Type {
-		case CreateRoom:
-			var crm CreateRoomMessageBody
-			err = json.Unmarshal(msg.Body, &crm)
-			if err != nil {
-				_ = NewErrorMessage("failed to unmarshal message").Send(conn)
-				continue
-			}
-
-			err = h.handleCreateRoom(crm)
-			if err != nil {
-				_ = NewErrorMessage(err.Error()).Send(conn)
-				continue
-			}
-
-			_ = NewInfoMessage(fmt.Sprintf("room %s created", crm.RoomName)).Send(conn)
-		case JoinRoom:
-			var jrm JoinRoomMessageBody
-			err = json.Unmarshal(msg.Body, &jrm)
-			if err != nil {
-				_ = NewErrorMessage("failed to unmarshal message").Send(conn)
-				continue
-			}
-
-			err = h.handleJoinRoom(jrm)
-			if err != nil {
-				_ = NewErrorMessage(err.Error()).Send(conn)
-				continue
-			}
-
-			_ = NewInfoMessage(fmt.Sprintf("room %s joined", jrm.RoomName)).Send(conn)
-		case LeaveRoom:
-			var lrm LeaveRoomMessageBody
-			err = json.Unmarshal(msg.Body, &lrm)
-			if err != nil {
-				_ = NewErrorMessage("failed to unmarshal message").Send(conn)
-				continue
-			}
-
-			err = h.handleLeaveRoom(lrm)
-			if err != nil {
-				_ = NewErrorMessage(err.Error()).Send(conn)
-				continue
-			}
-
-			_ = NewInfoMessage(fmt.Sprintf("room %s left", lrm.RoomName)).Send(conn)
-		case SendMessageToRoom:
-			var smrm SendMessageMessageBody
-			err = json.Unmarshal(msg.Body, &smrm)
-			if err != nil {
-				_ = NewErrorMessage("failed to unmarshal message").Send(conn)
-				continue
-			}
-
-			err = h.handleSendMessageToRoom(smrm)
-			if err != nil {
-				_ = NewErrorMessage(err.Error()).Send(conn)
-				continue
-			}
-
-			_ = NewInfoMessage(fmt.Sprintf("message sent to room %s", smrm.RoomName)).Send(conn)
+		switch m := msg.(type) {
+		case *JoinChannelCommand:
+			h.handleJoinChannel(ctx, conn, username, m)
+		case *LeaveChannelCommand:
+			h.handleLeaveChannel(ctx, conn, username, m)
+		case *SendMessageCommand:
+			h.handleSendMessage(ctx, conn, username, m)
+		//case *SendDirectMessageCommand:
+		//case *ListChannelsCommand:
+		//case *ListChannelUsersCommand:
+		default:
+			log.Printf("Error: unsupported message type: %T", m)
+			h.WriteMessage(conn, "server error")
 		}
 	}
 }
 
-func (h *WSServer) handleCreateRoom(msg CreateRoomMessageBody) error {
-	h.mu.Lock()
-	defer h.mu.Unlock()
-
-	if _, ok := h.db.Rooms[msg.RoomName]; ok {
-		return fmt.Errorf("room already exists")
+func (h *Handler) handleJoinChannel(ctx context.Context, conn *websocket.Conn, username string, cmd *JoinChannelCommand) {
+	err := h.s.JoinChannel(ctx, username, cmd.ChannelName)
+	if err != nil {
+		log.Printf("Debug: %s failed to join channel: %v", username, err)
+		h.WriteMessage(conn, fmt.Sprintf("failed to join channel: %v", err))
+		return
 	}
-
-	h.db.Rooms[msg.RoomName] = Room{
-		Name:         msg.RoomName,
-		Participants: make(map[string]Participant),
-	}
-
-	return nil
+	h.WriteMessage(conn, fmt.Sprintf("%s joined channel #%s", username, cmd.ChannelName))
 }
 
-func (h *WSServer) handleJoinRoom(msg JoinRoomMessageBody) error {
-	h.mu.Lock()
-	defer h.mu.Unlock()
-
-	room, ok := h.db.Rooms[msg.RoomName]
-	if !ok {
-		return fmt.Errorf("room does not exist")
+func (h *Handler) handleLeaveChannel(ctx context.Context, conn *websocket.Conn, username string, cmd *LeaveChannelCommand) {
+	err := h.s.LeaveChannel(ctx, username, cmd.ChannelName)
+	if err != nil {
+		log.Printf("Debug: %s failed to leave channel: %v", username, err)
+		h.WriteMessage(conn, fmt.Sprintf("failed to leave channel: %v", err))
+		return
 	}
-
-	_, ok = room.Participants[msg.ParticipantName]
-	if ok {
-		return fmt.Errorf("participant already in the room")
-	}
-
-	room.Participants[msg.ParticipantName] = Participant{
-		Name: msg.ParticipantName,
-		Conn: nil,
-	}
-
-	return nil
+	h.WriteMessage(conn, fmt.Sprintf("%s left channel #%s", username, cmd.ChannelName))
 }
 
-func (h *WSServer) handleLeaveRoom(lrm LeaveRoomMessageBody) error {
-	h.mu.Lock()
-	defer h.mu.Unlock()
-
-	room, ok := h.db.Rooms[lrm.RoomName]
-	if !ok {
-		return fmt.Errorf("room does not exist")
+func (h *Handler) handleSendMessage(ctx context.Context, conn *websocket.Conn, username string, cmd *SendMessageCommand) {
+	err := h.s.SendMessage(ctx, username, cmd.ChannelName, cmd.Message)
+	if err != nil {
+		log.Printf("Debug: %s failed to send message: %v", username, err)
+		h.WriteMessage(conn, fmt.Sprintf("failed to send message: %v", err))
+		return
 	}
+	h.WriteMessage(conn, fmt.Sprintf("#%s: @%s: %s", cmd.ChannelName, username, cmd.Message))
+}
 
-	_, ok = room.Participants[lrm.ParticipantName]
-	if !ok {
-		return fmt.Errorf("participant not in the room")
+func (h *Handler) WriteMessage(conn *websocket.Conn, msg string) {
+	err := conn.WriteMessage(websocket.TextMessage, []byte(msg))
+	if err != nil {
+		log.Printf("Error: failed to write message: %v", err)
 	}
-
-	delete(room.Participants, lrm.ParticipantName)
-
-	return nil
 }

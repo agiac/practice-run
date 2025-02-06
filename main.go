@@ -3,15 +3,14 @@ package main
 import (
 	"log"
 	"net/http"
-	"practice-run/handler2"
+	"practice-run/handler"
 	"practice-run/service"
 
 	"github.com/gorilla/websocket"
 )
 
 func main() {
-
-	h := handler2.NewHandler(
+	h := handler.NewHandler(
 		&websocket.Upgrader{
 			ReadBufferSize:  1024,
 			WriteBufferSize: 1024,
@@ -21,9 +20,8 @@ func main() {
 
 	http.HandleFunc("/ws", h.ServeHTTP)
 
-	http.HandleFunc("/", http.FileServer(http.Dir("./public")).ServeHTTP)
-
 	err := http.ListenAndServe(":8080", nil)
+
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)
 	}

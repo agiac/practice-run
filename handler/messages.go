@@ -1,130 +1,71 @@
 package handler
 
 import (
-	"encoding/json"
 	"fmt"
-
-	"github.com/gorilla/websocket"
+	"regexp"
 )
 
-type MessageType string
+var JoinChannelCommandRegex = regexp.MustCompile(`^/(?P<command>join)\s+#(?P<channelName>\w+)$`)
 
-const (
-	CreateRoom        MessageType = "create_room"
-	JoinRoom          MessageType = "join_room"
-	LeaveRoom         MessageType = "leave_room"
-	SendMessageToRoom MessageType = "send_message_to_room"
-	Info              MessageType = "info"
-	Error             MessageType = "error"
-)
-
-type GenericMessage struct {
-	Type MessageType     `json:"type"`
-	Body json.RawMessage `json:"body"`
+type JoinChannelCommand struct {
+	ChannelName string
 }
 
-func (m *GenericMessage) Send(conn *websocket.Conn) error {
-	data, err := json.Marshal(*m)
-	if err != nil {
-		return err
-	}
+var LeaveChannelCommandRegex = regexp.MustCompile(`^/(?P<command>leave)\s+#(?P<channelName>\w+)$`)
 
-	return conn.WriteMessage(websocket.TextMessage, data)
+type LeaveChannelCommand struct {
+	ChannelName string
 }
 
-func NewCreateRoomMessage(roomName string) *GenericMessage {
-	body, err := json.Marshal(CreateRoomMessageBody{RoomName: roomName})
-	if err != nil {
-		panic(fmt.Sprintf("failed to marshal create room message body: %s", err))
-	}
+var SendMessageCommandRegex = regexp.MustCompile(`^/(?P<command>msg)\s+#(?P<channelName>\w+)\s+(?P<message>.+)$`)
 
-	return &GenericMessage{
-		Type: CreateRoom,
-		Body: body,
-	}
+type SendMessageCommand struct {
+	ChannelName string
+	Message     string
 }
 
-type CreateRoomMessageBody struct {
-	RoomName string `json:"room_name"`
-}
+//var SendPrivateMessageCommandRegex = regexp.MustCompile(`^/(?P<command>send)\s+@(?P<recipient>\w+)\s+(?P<message>.+)$`)
+//
+//type SendDirectMessageCommand struct {
+//	Recipient string
+//	Message   string
+//}
+//
+//var ListChannelsCommandRegex = regexp.MustCompile(`^/(?P<command>list)$`)
+//
+//type ListChannelsCommand struct {
+//}
+//
+//var ListChannelUsersCommandRegex = regexp.MustCompile(`^/(?P<command>list)\s+#(?P<channelName>\w+)$`)
+//
+//type ListChannelUsersCommand struct {
+//	ChannelName string
+//}
 
-func NewJoinRoomMessage(roomName string) *GenericMessage {
-	body, err := json.Marshal(JoinRoomMessageBody{RoomName: roomName})
-	if err != nil {
-		panic(fmt.Sprintf("failed to marshal join room message body: %s", err))
+func ParseMessage(msg string) (interface{}, error) {
+	if match := JoinChannelCommandRegex.FindStringSubmatch(msg); len(match) > 0 {
+		return &JoinChannelCommand{ChannelName: match[2]}, nil
 	}
 
-	return &GenericMessage{
-		Type: JoinRoom,
-		Body: body,
-	}
-}
-
-type JoinRoomMessageBody struct {
-	RoomName string `json:"room_name"`
-}
-
-func NewLeaveRoomMessage(roomName string) *GenericMessage {
-	body, err := json.Marshal(LeaveRoomMessageBody{RoomName: roomName})
-	if err != nil {
-		panic(fmt.Sprintf("failed to marshal leave room message body: %s", err))
+	if match := LeaveChannelCommandRegex.FindStringSubmatch(msg); len(match) > 0 {
+		return &LeaveChannelCommand{ChannelName: match[2]}, nil
 	}
 
-	return &GenericMessage{
-		Type: LeaveRoom,
-		Body: body,
-	}
-}
-
-type LeaveRoomMessageBody struct {
-	RoomName string `json:"room_name"`
-}
-
-func NewSendMessageToRoomMessage(roomName, message string) *GenericMessage {
-	body, err := json.Marshal(SendMessageMessageBody{RoomName: roomName, Message: message})
-	if err != nil {
-		panic(fmt.Sprintf("failed to marshal send message to room message body: %s", err))
+	if match := SendMessageCommandRegex.FindStringSubmatch(msg); len(match) > 0 {
+		return &SendMessageCommand{ChannelName: match[2], Message: match[3]}, nil
 	}
 
-	return &GenericMessage{
-		Type: SendMessageToRoom,
-		Body: body,
-	}
-}
+	//if match := SendPrivateMessageCommandRegex.FindStringSubmatch(msg); len(match) > 0 {
+	//	return &SendDirectMessageCommand{Recipient: match[2], Message: match[3]}, nil
+	//}
+	//
+	//if match := ListChannelsCommandRegex.FindStringSubmatch(msg); len(match) > 0 {
+	//	return &ListChannelsCommand{}, nil
+	//}
+	//
+	//if match := ListChannelUsersCommandRegex.FindStringSubmatch(msg); len(match) > 0 {
+	//	return &ListChannelUsersCommand{ChannelName: match[2]}, nil
+	//}
 
-type SendMessageMessageBody struct {
-	RoomName string `json:"room_name"`
-	Message  string `json:"message"`
-}
-
-func NewInfoMessage(message string) *GenericMessage {
-	body, err := json.Marshal(InfoMessageBody{Message: message})
-	if err != nil {
-		panic(fmt.Sprintf("failed to marshal info message body: %s", err))
-	}
-
-	return &GenericMessage{
-		Type: Info,
-		Body: body,
-	}
-}
-
-type InfoMessageBody struct {
-	Message string `json:"message"`
-}
-
-func NewErrorMessage(message string) *GenericMessage {
-	body, err := json.Marshal(ErrorMessageBody{Message: message})
-	if err != nil {
-		panic(fmt.Sprintf("failed to marshal error message body: %s", err))
-	}
-
-	return &GenericMessage{
-		Type: Error,
-		Body: body,
-	}
-}
-
-type ErrorMessageBody struct {
-	Message string `json:"message"`
+	return nil, fmt.Errorf("unsupported message format")
 }
