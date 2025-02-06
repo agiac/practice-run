@@ -82,13 +82,10 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		case *LeaveChannelCommand:
 			h.handleLeaveChannel(ctx, conn, username, m)
 		case *SendMessageCommand:
-			// TODO: implement
+			h.handleSendMessage(ctx, conn, username, m)
 		//case *SendDirectMessageCommand:
-		//// TODO: implement
 		//case *ListChannelsCommand:
-		//	// TODO: implement
 		//case *ListChannelUsersCommand:
-		//	// TODO: implement
 		default:
 			log.Printf("Error: unsupported message type: %T", m)
 			h.WriteMessage(conn, "server error")
@@ -114,6 +111,16 @@ func (h *Handler) handleLeaveChannel(ctx context.Context, conn *websocket.Conn, 
 		return
 	}
 	h.WriteMessage(conn, fmt.Sprintf("%s left channel #%s", username, cmd.ChannelName))
+}
+
+func (h *Handler) handleSendMessage(ctx context.Context, conn *websocket.Conn, username string, cmd *SendMessageCommand) {
+	err := h.s.SendMessage(ctx, username, cmd.ChannelName, cmd.Message)
+	if err != nil {
+		log.Printf("Debug: %s failed to send message: %v", username, err)
+		h.WriteMessage(conn, fmt.Sprintf("failed to send message: %v", err))
+		return
+	}
+	h.WriteMessage(conn, fmt.Sprintf("#%s: @%s: %s", cmd.ChannelName, username, cmd.Message))
 }
 
 func (h *Handler) WriteMessage(conn *websocket.Conn, msg string) {

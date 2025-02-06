@@ -17,7 +17,7 @@ type LeaveChannelCommand struct {
 	ChannelName string
 }
 
-var SendMessageCommandRegex = regexp.MustCompile(`^/(?P<command>send)\s+#(?P<channelName>\w+)\s+(?P<message>.+)$`)
+var SendMessageCommandRegex = regexp.MustCompile(`^/(?P<command>msg)\s+#(?P<channelName>\w+)\s+(?P<message>.+)$`)
 
 type SendMessageCommand struct {
 	ChannelName string
