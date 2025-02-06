@@ -40,6 +40,21 @@ func (m *MockChatService) EXPECT() *MockChatServiceMockRecorder {
 	return m.recorder
 }
 
+// GetUpdates mocks base method.
+func (m *MockChatService) GetUpdates(ctx context.Context, username string) (<-chan string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetUpdates", ctx, username)
+	ret0, _ := ret[0].(<-chan string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetUpdates indicates an expected call of GetUpdates.
+func (mr *MockChatServiceMockRecorder) GetUpdates(ctx, username any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUpdates", reflect.TypeOf((*MockChatService)(nil).GetUpdates), ctx, username)
+}
+
 // JoinChannel mocks base method.
 func (m *MockChatService) JoinChannel(ctx context.Context, username, channelName string) error {
 	m.ctrl.T.Helper()
@@ -66,50 +81,6 @@ func (m *MockChatService) LeaveChannel(ctx context.Context, username, channelNam
 func (mr *MockChatServiceMockRecorder) LeaveChannel(ctx, username, channelName any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LeaveChannel", reflect.TypeOf((*MockChatService)(nil).LeaveChannel), ctx, username, channelName)
-}
-
-// ListChannelUsers mocks base method.
-func (m *MockChatService) ListChannelUsers(ctx context.Context, channelName string) ([]string, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListChannelUsers", ctx, channelName)
-	ret0, _ := ret[0].([]string)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// ListChannelUsers indicates an expected call of ListChannelUsers.
-func (mr *MockChatServiceMockRecorder) ListChannelUsers(ctx, channelName any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListChannelUsers", reflect.TypeOf((*MockChatService)(nil).ListChannelUsers), ctx, channelName)
-}
-
-// ListChannels mocks base method.
-func (m *MockChatService) ListChannels(ctx context.Context) ([]string, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListChannels", ctx)
-	ret0, _ := ret[0].([]string)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// ListChannels indicates an expected call of ListChannels.
-func (mr *MockChatServiceMockRecorder) ListChannels(ctx any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListChannels", reflect.TypeOf((*MockChatService)(nil).ListChannels), ctx)
-}
-
-// SendDirectMessage mocks base method.
-func (m *MockChatService) SendDirectMessage(ctx context.Context, sender, recipient, message string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SendDirectMessage", ctx, sender, recipient, message)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// SendDirectMessage indicates an expected call of SendDirectMessage.
-func (mr *MockChatServiceMockRecorder) SendDirectMessage(ctx, sender, recipient, message any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendDirectMessage", reflect.TypeOf((*MockChatService)(nil).SendDirectMessage), ctx, sender, recipient, message)
 }
 
 // SendMessage mocks base method.

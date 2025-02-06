@@ -14,9 +14,7 @@ type ChatService interface {
 	JoinChannel(ctx context.Context, username, channelName string) error
 	LeaveChannel(ctx context.Context, username, channelName string) error
 	SendMessage(ctx context.Context, username, channelName, message string) error
-	SendDirectMessage(ctx context.Context, sender, recipient, message string) error
-	ListChannels(ctx context.Context) ([]string, error)
-	ListChannelUsers(ctx context.Context, channelName string) ([]string, error)
+	GetUpdates(ctx context.Context, username string) (<-chan string, error)
 }
 
 type Handler struct {
@@ -31,13 +29,14 @@ func NewHandler(u *websocket.Upgrader, s ChatService) *Handler {
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	// Read credentials, skip validation
 	username, _, ok := r.BasicAuth()
 	if !ok {
 		log.Printf("Debug: unauthorized request")
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
+
+	// skip authentication for now
 
 	conn, err := h.u.Upgrade(w, r, nil)
 	if err != nil {
@@ -54,6 +53,24 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// Send welcome message upon successful connection
 	h.WriteMessage(conn, fmt.Sprintf("welcome, %s!", username))
+
+	// Get updates
+	updates, err := h.s.GetUpdates(ctx, username)
+	if err != nil {
+		log.Printf("Error: failed to get updates stream for user %s: %v", username, err)
+		return
+	}
+
+	go func() {
+		for {
+			select {
+			case update := <-updates:
+				h.WriteMessage(conn, update)
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
 
 	// Handle messages
 	for {
@@ -75,7 +92,6 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 
-		// Type switch
 		switch m := msg.(type) {
 		case *JoinChannelCommand:
 			h.handleJoinChannel(ctx, conn, username, m)
