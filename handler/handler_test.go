@@ -28,7 +28,7 @@ create a room, join a room, leave a room, and send a message to a room—the mes
 func (s *Suite) TestRun() {
 	s.Run("create a room", func() {
 		// Given
-		h := handler.NewHandler()
+		h := handler.NewWSServer()
 
 		server := httptest.NewServer(h)
 		defer server.Close()
@@ -54,19 +54,131 @@ func (s *Suite) TestRun() {
 	})
 
 	s.Run("join a room", func() {
-		s.T().Skip("not implemented")
+		// Given
+		h := handler.NewWSServer()
+
+		server := httptest.NewServer(h)
+		defer server.Close()
+
+		u := url.URL{
+			Scheme: "ws",
+			Host:   server.Listener.Addr().String(),
+		}
+		cn, res, err := websocket.DefaultDialer.Dial(u.String(), nil)
+		s.Require().NoError(err)
+		s.Require().Equal(101, res.StatusCode)
+
+		// When
+		err = handler.NewJoinRoomMessage("room_1").Send(cn)
+		s.NoError(err)
+
+		mt, msg, err := cn.ReadMessage()
+		s.NoError(err)
+
+		// Then
+		s.Equal(websocket.TextMessage, mt)
+		s.Equal(`{"type":"info","body":{"message":"joined room room_1"}}`, string(msg))
 	})
 
 	s.Run("leave a room", func() {
-		s.T().Skip("not implemented")
+		// Given
+		h := handler.NewWSServer()
+
+		server := httptest.NewServer(h)
+		defer server.Close()
+
+		u := url.URL{
+			Scheme: "ws",
+			Host:   server.Listener.Addr().String(),
+		}
+		cn, res, err := websocket.DefaultDialer.Dial(u.String(), nil)
+		s.Require().NoError(err)
+		s.Require().Equal(101, res.StatusCode)
+
+		// When
+		err = handler.NewLeaveRoomMessage("room_1").Send(cn)
+		s.NoError(err)
+
+		mt, msg, err := cn.ReadMessage()
+		s.NoError(err)
+
+		// Then
+		s.Equal(websocket.TextMessage, mt)
+		s.Equal(`{"type":"info","body":{"message":"left room room_1"}}`, string(msg))
 	})
 
 	s.Run("send a message to a room", func() {
-		s.T().Skip("not implemented")
+		// Given
+		h := handler.NewWSServer()
+
+		server := httptest.NewServer(h)
+		defer server.Close()
+
+		u := url.URL{
+			Scheme: "ws",
+			Host:   server.Listener.Addr().String(),
+		}
+		cn1, res, err := websocket.DefaultDialer.Dial(u.String(), nil)
+		s.Require().NoError(err)
+		s.Require().Equal(101, res.StatusCode)
+
+		cn2, res, err := websocket.DefaultDialer.Dial(u.String(), nil)
+		s.Require().NoError(err)
+		s.Require().Equal(101, res.StatusCode)
+
+		// When
+		err = handler.NewCreateRoomMessage("room_1").Send(cn1)
+		s.NoError(err)
+
+		err = handler.NewJoinRoomMessage("room_1").Send(cn2)
+		s.NoError(err)
+
+		err = handler.NewSendMessageToRoomMessage("room_1", "hello").Send(cn1)
+		s.NoError(err)
+
+		mt, msg, err := cn2.ReadMessage()
+		s.NoError(err)
+
+		// Then
+		s.Equal(websocket.TextMessage, mt)
+		s.Equal(`{"type":"info","body":{"message":"hello"}}`, string(msg))
 	})
 
 	s.Run("broadcast message to other room participants", func() {
-		s.T().Skip("not implemented")
+		// Given
+		h := handler.NewWSServer()
+
+		server := httptest.NewServer(h)
+		defer server.Close()
+
+		u := url.URL{
+			Scheme: "ws",
+			Host:   server.Listener.Addr().String(),
+		}
+		cn1, res, err := websocket.DefaultDialer.Dial(u.String(), nil)
+		s.Require().NoError(err)
+		s.Require().Equal(101, res.StatusCode)
+
+		cn2, res, err := websocket.DefaultDialer.Dial(u.String(), nil)
+		s.Require().NoError(err)
+		s.Require().Equal(101, res.StatusCode)
+
+		// When
+		err = handler.NewCreateRoomMessage("room_1").Send(cn1)
+		s.NoError(err)
+
+		err = handler.NewJoinRoomMessage("room_1").Send(cn2)
+		s.NoError(err)
+
+		err = handler.NewSendMessageToRoomMessage("room_1", "hello").Send(cn1)
+		s.NoError(err)
+
+		mt, msg, err := cn1.ReadMessage()
+		s.NoError(err)
+
+		// Then
+		s.Equal(websocket.TextMessage, mt)
+		s.Equal(`{"type":"info","body":{"message":"hello"}}`, string(msg))
 	})
 
 }
