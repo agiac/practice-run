@@ -24,23 +24,23 @@ type SendMessageCommand struct {
 	Message     string
 }
 
-var SendPrivateMessageCommandRegex = regexp.MustCompile(`^/(?P<command>send)\s+@(?P<recipient>\w+)\s+(?P<message>.+)$`)
-
-type SendDirectMessageCommand struct {
-	Recipient string
-	Message   string
-}
-
-var ListChannelsCommandRegex = regexp.MustCompile(`^/(?P<command>list)$`)
-
-type ListChannelsCommand struct {
-}
-
-var ListChannelUsersCommandRegex = regexp.MustCompile(`^/(?P<command>list)\s+#(?P<channelName>\w+)$`)
-
-type ListChannelUsersCommand struct {
-	ChannelName string
-}
+//var SendPrivateMessageCommandRegex = regexp.MustCompile(`^/(?P<command>send)\s+@(?P<recipient>\w+)\s+(?P<message>.+)$`)
+//
+//type SendDirectMessageCommand struct {
+//	Recipient string
+//	Message   string
+//}
+//
+//var ListChannelsCommandRegex = regexp.MustCompile(`^/(?P<command>list)$`)
+//
+//type ListChannelsCommand struct {
+//}
+//
+//var ListChannelUsersCommandRegex = regexp.MustCompile(`^/(?P<command>list)\s+#(?P<channelName>\w+)$`)
+//
+//type ListChannelUsersCommand struct {
+//	ChannelName string
+//}
 
 func ParseMessage(msg string) (interface{}, error) {
 	if match := JoinChannelCommandRegex.FindStringSubmatch(msg); len(match) > 0 {
@@ -55,17 +55,17 @@ func ParseMessage(msg string) (interface{}, error) {
 		return &SendMessageCommand{ChannelName: match[2], Message: match[3]}, nil
 	}
 
-	if match := SendPrivateMessageCommandRegex.FindStringSubmatch(msg); len(match) > 0 {
-		return &SendDirectMessageCommand{Recipient: match[2], Message: match[3]}, nil
-	}
-
-	if match := ListChannelsCommandRegex.FindStringSubmatch(msg); len(match) > 0 {
-		return &ListChannelsCommand{}, nil
-	}
-
-	if match := ListChannelUsersCommandRegex.FindStringSubmatch(msg); len(match) > 0 {
-		return &ListChannelUsersCommand{ChannelName: match[2]}, nil
-	}
+	//if match := SendPrivateMessageCommandRegex.FindStringSubmatch(msg); len(match) > 0 {
+	//	return &SendDirectMessageCommand{Recipient: match[2], Message: match[3]}, nil
+	//}
+	//
+	//if match := ListChannelsCommandRegex.FindStringSubmatch(msg); len(match) > 0 {
+	//	return &ListChannelsCommand{}, nil
+	//}
+	//
+	//if match := ListChannelUsersCommandRegex.FindStringSubmatch(msg); len(match) > 0 {
+	//	return &ListChannelUsersCommand{ChannelName: match[2]}, nil
+	//}
 
 	return nil, fmt.Errorf("unsupported message format")
 }

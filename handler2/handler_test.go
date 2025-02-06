@@ -118,6 +118,61 @@ func (s *Suite) TestJoinChannel() {
 	})
 }
 
+func (s *Suite) TestLeaveChannel() {
+	s.Run("leave a channel", func() {
+		// Given
+		server := httptest.NewServer(s.h)
+		defer server.Close()
+
+		conn := s.createConnection(server, "user_1")
+
+		s.s.EXPECT().JoinChannel(gomock.Any(), "user_1", "room_1").Return(nil)
+		s.s.EXPECT().LeaveChannel(gomock.Any(), "user_1", "room_1").Return(nil)
+
+		// When
+		err := conn.WriteMessage(websocket.TextMessage, []byte(`/join #room_1`))
+		s.NoError(err)
+
+		err = conn.WriteMessage(websocket.TextMessage, []byte(`/leave #room_1`))
+		s.NoError(err)
+
+		_, msg1, _ := conn.ReadMessage()
+		_, msg2, _ := conn.ReadMessage()
+		_, msg3, _ := conn.ReadMessage()
+
+		// Then
+		s.Equal("welcome, user_1!", string(msg1))
+		s.Equal(`user_1 joined channel #room_1`, string(msg2))
+		s.Equal(`user_1 left channel #room_1`, string(msg3))
+	})
+
+	s.Run("error", func() {
+		// Given
+		server := httptest.NewServer(s.h)
+		defer server.Close()
+
+		conn := s.createConnection(server, "user_1")
+
+		s.s.EXPECT().JoinChannel(gomock.Any(), "user_1", "room_1").Return(nil)
+		s.s.EXPECT().LeaveChannel(gomock.Any(), "user_1", "room_1").Return(errors.New("some error"))
+
+		// When
+		err := conn.WriteMessage(websocket.TextMessage, []byte(`/join #room_1`))
+		s.NoError(err)
+		err = conn.WriteMessage(websocket.TextMessage, []byte(`/leave #room_1`))
+		s.NoError(err)
+
+		_, msg1, _ := conn.ReadMessage()
+		_, msg2, _ := conn.ReadMessage()
+		_, msg3, _ := conn.ReadMessage()
+
+		// Then
+		s.Equal("welcome, user_1!", string(msg1))
+		s.Equal(`user_1 joined channel #room_1`, string(msg2))
+		s.Equal(`failed to leave channel: some error`, string(msg3))
+	})
+}
+
 func (s *Suite) createConnection(server *httptest.Server, userName string) *websocket.Conn {
 	conn, res, err := websocket.DefaultDialer.Dial(wsUrl(server), http.Header{
 		"Authorization": []string{fmt.Sprintf("Basic %s", base64.StdEncoding.EncodeToString([]byte(userName+":password")))},
