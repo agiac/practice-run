@@ -3,12 +3,9 @@ package room
 import (
 	"context"
 	"fmt"
+	"slices"
 	"sync"
 )
-
-type Event interface {
-	Name() string
-}
 
 type Member interface {
 	Username() string
@@ -64,6 +61,11 @@ func (s *Service) AddMember(ctx context.Context, r *Room, m Member) error {
 
 	r.members[m.Username()] = m
 
+	s.broadcastEvent(r, &MemberJoinedEvent{
+		RoomName:   r.name,
+		MemberName: m.Username(),
+	}, m)
+
 	return nil
 }
 
@@ -73,6 +75,11 @@ func (s *Service) RemoveMember(ctx context.Context, r *Room, m Member) error {
 
 	delete(r.members, m.Username())
 
+	s.broadcastEvent(r, &MemberLeftEvent{
+		RoomName:   r.name,
+		MemberName: m.Username(),
+	}, m)
+
 	return nil
 }
 
@@ -80,17 +87,23 @@ func (s *Service) SendMessage(ctx context.Context, r *Room, m Member, message st
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
+	s.broadcastEvent(r, &MessageReceivedEvent{
+		RoomName:   r.name,
+		SenderName: m.Username(),
+		Message:    message,
+	}, m)
+
+	return nil
+}
+
+func (s *Service) broadcastEvent(r *Room, e Event, exclude ...Member) {
 	for _, member := range r.members {
-		if member.Username() == m.Username() {
+		if slices.IndexFunc(exclude, func(i Member) bool {
+			return i.Username() == member.Username()
+		}) != -1 {
 			continue
 		}
 
-		member.Notify(&MessageReceivedEvent{
-			RoomName:   r.name,
-			SenderName: m.Username(),
-			Message:    message,
-		})
+		member.Notify(e)
 	}
-
-	return nil
 }

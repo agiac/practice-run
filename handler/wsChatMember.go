@@ -9,22 +9,22 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-type WSChatMember struct {
+type ChatMember struct {
 	mu   sync.Mutex
 	conn *websocket.Conn
 
 	username string
 }
 
-func NewChatMember(username string, conn *websocket.Conn) *WSChatMember {
-	return &WSChatMember{username: username, mu: sync.Mutex{}, conn: conn}
+func NewChatMember(username string, conn *websocket.Conn) *ChatMember {
+	return &ChatMember{username: username, mu: sync.Mutex{}, conn: conn}
 }
 
-func (m *WSChatMember) Username() string {
+func (m *ChatMember) Username() string {
 	return m.username
 }
 
-func (m *WSChatMember) Notify(event room.Event) {
+func (m *ChatMember) Notify(event room.Event) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -39,14 +39,14 @@ func (m *WSChatMember) Notify(event room.Event) {
 	}
 }
 
-func (m *WSChatMember) notify(message string) {
+func (m *ChatMember) notify(message string) {
 	err := m.conn.WriteMessage(websocket.TextMessage, []byte(message))
 	if err != nil {
 		log.Printf("Error: failed to notify member %s: %v", m.username, err)
 	}
 }
 
-func (m *WSChatMember) WriteMessage(message string) {
+func (m *ChatMember) WriteMessage(message string) {
 	err := m.conn.WriteMessage(websocket.TextMessage, []byte(message))
 	if err != nil {
 		log.Printf("Error: failed to write message to member %s: %v", m.username, err)

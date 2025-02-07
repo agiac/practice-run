@@ -75,7 +75,7 @@ func (h *WebSocketHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *WebSocketHandler) handleCommand(ctx context.Context, m *WSChatMember, cmd interface{}) {
+func (h *WebSocketHandler) handleCommand(ctx context.Context, m *ChatMember, cmd interface{}) {
 	switch c := cmd.(type) {
 	case *JoinChannelCommand:
 		h.handleJoinChannel(ctx, m, c)
@@ -89,7 +89,7 @@ func (h *WebSocketHandler) handleCommand(ctx context.Context, m *WSChatMember, c
 	}
 }
 
-func (h *WebSocketHandler) handleJoinChannel(ctx context.Context, m *WSChatMember, cmd *JoinChannelCommand) {
+func (h *WebSocketHandler) handleJoinChannel(ctx context.Context, m *ChatMember, cmd *JoinChannelCommand) {
 	err := h.chatService.AddMemberToRoom(ctx, cmd.ChannelName, m)
 	if err != nil {
 		log.Printf("Debug: %s failed to join channel: %v", m.Username(), err)
@@ -100,7 +100,7 @@ func (h *WebSocketHandler) handleJoinChannel(ctx context.Context, m *WSChatMembe
 	m.WriteMessage(fmt.Sprintf("you've joined #%s", cmd.ChannelName))
 }
 
-func (h *WebSocketHandler) handleLeaveChannel(ctx context.Context, m *WSChatMember, cmd *LeaveChannelCommand) {
+func (h *WebSocketHandler) handleLeaveChannel(ctx context.Context, m *ChatMember, cmd *LeaveChannelCommand) {
 	err := h.chatService.RemoveMemberFromRoom(ctx, cmd.ChannelName, m)
 	if err != nil {
 		log.Printf("Debug: %s failed to leave channel: %v", m.Username(), err)
@@ -111,7 +111,7 @@ func (h *WebSocketHandler) handleLeaveChannel(ctx context.Context, m *WSChatMemb
 	m.WriteMessage(fmt.Sprintf("you've left #%s", cmd.ChannelName))
 }
 
-func (h *WebSocketHandler) handleSendMessage(ctx context.Context, m *WSChatMember, cmd *SendMessageCommand) {
+func (h *WebSocketHandler) handleSendMessage(ctx context.Context, m *ChatMember, cmd *SendMessageCommand) {
 	err := h.chatService.SendMessageToRoom(ctx, cmd.ChannelName, m, cmd.Message)
 	if err != nil {
 		log.Printf("Debug: %s failed to send message: %v", m.Username(), err)

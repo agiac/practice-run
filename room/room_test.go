@@ -63,6 +63,25 @@ func (s *ServiceSuite) TestAddMember() {
 		// Then
 		s.Error(err)
 	})
+
+	s.Run("broadcast event to other members when a member joins", func() {
+		// Given
+		r, _ := s.service.CreateRoom(context.Background(), "test_room")
+		member1 := &MockMember{username: "user_1"}
+		member2 := &MockMember{username: "user_2"}
+		_ = s.service.AddMember(context.Background(), r, member1)
+
+		// When
+		err := s.service.AddMember(context.Background(), r, member2)
+
+		// Then
+		s.NoError(err)
+		s.Equal(room.MemberJoinedEvent{
+			RoomName:   "test_room",
+			MemberName: "user_2",
+		}, *member1.lastNotification.(*room.MemberJoinedEvent))
+		s.Nil(member2.lastNotification)
+	})
 }
 
 func (s *ServiceSuite) TestRemoveMember() {
@@ -78,6 +97,42 @@ func (s *ServiceSuite) TestRemoveMember() {
 		// Then
 		s.NoError(err)
 		s.hasNotMember(r, member)
+	})
+
+	s.Run("remove a member from a room that does not have the member", func() {
+		// Given
+		r, _ := s.service.CreateRoom(context.Background(), "test_room")
+		member := &MockMember{username: "user_1"}
+
+		// When
+		err := s.service.RemoveMember(context.Background(), r, member)
+
+		// Then
+		s.NoError(err)
+		s.hasNotMember(r, member)
+	})
+
+	s.Run("broadcast event to other members when a member leaves", func() {
+		// Given
+		r, _ := s.service.CreateRoom(context.Background(), "test_room")
+		member1 := &MockMember{username: "user_1"}
+		member2 := &MockMember{username: "user_2"}
+		_ = s.service.AddMember(context.Background(), r, member1)
+		_ = s.service.AddMember(context.Background(), r, member2)
+
+		// When
+		err := s.service.RemoveMember(context.Background(), r, member1)
+
+		// Then
+		s.NoError(err)
+		s.Equal(room.MemberJoinedEvent{
+			RoomName:   "test_room",
+			MemberName: "user_2",
+		}, *member1.lastNotification.(*room.MemberJoinedEvent))
+		s.Equal(room.MemberLeftEvent{
+			RoomName:   "test_room",
+			MemberName: "user_1",
+		}, *member2.lastNotification.(*room.MemberLeftEvent))
 	})
 }
 
@@ -95,7 +150,15 @@ func (s *ServiceSuite) TestSendMessage() {
 
 		// Then
 		s.NoError(err)
-		s.Equal("test_room: @user_1: hello, world!", member2.lastNotification)
+		s.Equal(room.MessageReceivedEvent{
+			RoomName:   "test_room",
+			SenderName: "user_1",
+			Message:    "hello, world!",
+		}, *member2.lastNotification.(*room.MessageReceivedEvent))
+		s.Equal(room.MemberJoinedEvent{
+			RoomName:   "test_room",
+			MemberName: "user_2",
+		}, *member1.lastNotification.(*room.MemberJoinedEvent))
 	})
 }
 
@@ -113,14 +176,14 @@ func (s *ServiceSuite) hasNotMember(r *room.Room, m room.Member) bool {
 
 type MockMember struct {
 	username         string
-	lastNotification string
+	lastNotification room.Event
 }
 
 func (m *MockMember) Username() string {
 	return m.username
 }
 
-func (m *MockMember) Notify(event string) {
+func (m *MockMember) Notify(event room.Event) {
 	m.lastNotification = event
 }
 
