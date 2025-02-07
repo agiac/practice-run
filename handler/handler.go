@@ -61,13 +61,13 @@ func (h *WebSocketHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if mt != websocket.TextMessage {
-			member.Notify("bad request: only text messages are supported")
+			member.WriteMessage("bad request: only text messages are supported")
 			continue
 		}
 
 		cmd, err := ParseMessage(string(msg))
 		if err != nil {
-			member.Notify(fmt.Sprintf("bad request: failed to parse message: %v", err))
+			member.WriteMessage(fmt.Sprintf("bad request: failed to parse message: %v", err))
 			continue
 		}
 
@@ -85,7 +85,7 @@ func (h *WebSocketHandler) handleCommand(ctx context.Context, m *WSChatMember, c
 		h.handleSendMessage(ctx, m, c)
 	default:
 		log.Printf("Error: unsupported command type: %T", cmd)
-		m.Notify("server error")
+		m.WriteMessage("server error")
 	}
 }
 
@@ -93,31 +93,31 @@ func (h *WebSocketHandler) handleJoinChannel(ctx context.Context, m *WSChatMembe
 	err := h.chatService.AddMemberToRoom(ctx, cmd.ChannelName, m)
 	if err != nil {
 		log.Printf("Debug: %s failed to join channel: %v", m.Username(), err)
-		m.Notify(fmt.Sprintf("failed to join #%s: %v", cmd.ChannelName, err))
+		m.WriteMessage(fmt.Sprintf("failed to join #%s: %v", cmd.ChannelName, err))
 		return
 	}
 
-	m.Notify(fmt.Sprintf("you've joined #%s", cmd.ChannelName))
+	m.WriteMessage(fmt.Sprintf("you've joined #%s", cmd.ChannelName))
 }
 
 func (h *WebSocketHandler) handleLeaveChannel(ctx context.Context, m *WSChatMember, cmd *LeaveChannelCommand) {
 	err := h.chatService.RemoveMemberFromRoom(ctx, cmd.ChannelName, m)
 	if err != nil {
 		log.Printf("Debug: %s failed to leave channel: %v", m.Username(), err)
-		m.Notify(fmt.Sprintf("failed to leave #%s: %v", cmd.ChannelName, err))
+		m.WriteMessage(fmt.Sprintf("failed to leave #%s: %v", cmd.ChannelName, err))
 		return
 	}
 
-	m.Notify(fmt.Sprintf("you've left #%s", cmd.ChannelName))
+	m.WriteMessage(fmt.Sprintf("you've left #%s", cmd.ChannelName))
 }
 
 func (h *WebSocketHandler) handleSendMessage(ctx context.Context, m *WSChatMember, cmd *SendMessageCommand) {
 	err := h.chatService.SendMessageToRoom(ctx, cmd.ChannelName, m, cmd.Message)
 	if err != nil {
 		log.Printf("Debug: %s failed to send message: %v", m.Username(), err)
-		m.Notify(fmt.Sprintf("failed to send message: %v", err))
+		m.WriteMessage(fmt.Sprintf("failed to send message: %v", err))
 		return
 	}
 
-	m.Notify(fmt.Sprintf("#%s: @%s: %s", cmd.ChannelName, m.Username(), cmd.Message))
+	m.WriteMessage(fmt.Sprintf("#%s: @%s: %s", cmd.ChannelName, m.Username(), cmd.Message))
 }

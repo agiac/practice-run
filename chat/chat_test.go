@@ -210,13 +210,13 @@ func (s *ChatSuite) TestSendMessageToRoom() {
 
 type MockMember struct {
 	username         string
-	lastNotification string
+	lastNotification room.Event
 }
 
 func (m *MockMember) Username() string {
 	return m.username
 }
 
-func (m *MockMember) Notify(event string) {
+func (m *MockMember) Notify(event room.Event) {
 	m.lastNotification = event
 }

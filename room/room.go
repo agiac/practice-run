@@ -6,9 +6,13 @@ import (
 	"sync"
 )
 
+type Event interface {
+	Name() string
+}
+
 type Member interface {
 	Username() string
-	Notify(event string)
+	Notify(event Event)
 }
 
 type Room struct {
@@ -81,7 +85,11 @@ func (s *Service) SendMessage(ctx context.Context, r *Room, m Member, message st
 			continue
 		}
 
-		member.Notify(fmt.Sprintf("%s: @%s: %s", r.name, m.Username(), message))
+		member.Notify(&MessageReceivedEvent{
+			RoomName:   r.name,
+			SenderName: m.Username(),
+			Message:    message,
+		})
 	}
 
 	return nil
