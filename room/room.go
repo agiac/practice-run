@@ -56,7 +56,7 @@ func (s *Service) AddMember(ctx context.Context, r *Room, m Member) error {
 
 	_, ok := r.members[m.Username()]
 	if ok {
-		return fmt.Errorf("%s already in %s", m.Username(), r.name)
+		return fmt.Errorf("already a room member")
 	}
 
 	r.members[m.Username()] = m
@@ -86,6 +86,11 @@ func (s *Service) RemoveMember(ctx context.Context, r *Room, m Member) error {
 func (s *Service) SendMessage(ctx context.Context, r *Room, m Member, message string) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+
+	_, ok := r.members[m.Username()]
+	if !ok {
+		return fmt.Errorf("not a room member")
+	}
 
 	s.broadcastEvent(r, &MessageReceivedEvent{
 		RoomName:   r.name,

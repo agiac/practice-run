@@ -76,7 +76,7 @@ func (c *Service) SendMessageToRoom(ctx context.Context, roomName string, member
 
 	r, ok := c.rooms[roomName]
 	if !ok {
-		return fmt.Errorf("room %s not found", roomName)
+		return fmt.Errorf("room not found")
 	}
 
 	err := c.rs.SendMessage(ctx, r, member, message)

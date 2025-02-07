@@ -68,8 +68,8 @@ func (s *Suite) TestAuthentication() {
 	})
 }
 
-func (s *Suite) TestJoinChannel() {
-	s.Run("join a channel", func() {
+func (s *Suite) TestJoinRoom() {
+	s.Run("join a room", func() {
 		// Given
 		server := httptest.NewServer(s.h)
 		defer server.Close()
@@ -108,8 +108,8 @@ func (s *Suite) TestJoinChannel() {
 	})
 }
 
-func (s *Suite) TestLeaveChannel() {
-	s.Run("leave a channel", func() {
+func (s *Suite) TestLeaveRoom() {
+	s.Run("leave a room", func() {
 		// Given
 		server := httptest.NewServer(s.h)
 		defer server.Close()

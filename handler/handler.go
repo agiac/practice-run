@@ -77,10 +77,10 @@ func (h *WebSocketHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func (h *WebSocketHandler) handleCommand(ctx context.Context, m *ChatMember, cmd interface{}) {
 	switch c := cmd.(type) {
-	case *JoinChannelCommand:
-		h.handleJoinChannel(ctx, m, c)
-	case *LeaveChannelCommand:
-		h.handleLeaveChannel(ctx, m, c)
+	case *JoinRoomCommand:
+		h.handleJoinRoom(ctx, m, c)
+	case *LeaveRoomCommand:
+		h.handleLeaveRoom(ctx, m, c)
 	case *SendMessageCommand:
 		h.handleSendMessage(ctx, m, c)
 	default:
@@ -89,35 +89,35 @@ func (h *WebSocketHandler) handleCommand(ctx context.Context, m *ChatMember, cmd
 	}
 }
 
-func (h *WebSocketHandler) handleJoinChannel(ctx context.Context, m *ChatMember, cmd *JoinChannelCommand) {
-	err := h.chatService.AddMemberToRoom(ctx, cmd.ChannelName, m)
+func (h *WebSocketHandler) handleJoinRoom(ctx context.Context, m *ChatMember, cmd *JoinRoomCommand) {
+	err := h.chatService.AddMemberToRoom(ctx, cmd.RoomName, m)
 	if err != nil {
-		log.Printf("Debug: %s failed to join channel: %v", m.Username(), err)
-		m.WriteMessage(fmt.Sprintf("failed to join #%s: %v", cmd.ChannelName, err))
+		log.Printf("Debug: %s failed to join room: %v", m.Username(), err)
+		m.WriteMessage(fmt.Sprintf("failed to join #%s: %v", cmd.RoomName, err))
 		return
 	}
 
-	m.WriteMessage(fmt.Sprintf("you've joined #%s", cmd.ChannelName))
+	m.WriteMessage(fmt.Sprintf("you've joined #%s", cmd.RoomName))
 }
 
-func (h *WebSocketHandler) handleLeaveChannel(ctx context.Context, m *ChatMember, cmd *LeaveChannelCommand) {
-	err := h.chatService.RemoveMemberFromRoom(ctx, cmd.ChannelName, m)
+func (h *WebSocketHandler) handleLeaveRoom(ctx context.Context, m *ChatMember, cmd *LeaveRoomCommand) {
+	err := h.chatService.RemoveMemberFromRoom(ctx, cmd.RoomName, m)
 	if err != nil {
-		log.Printf("Debug: %s failed to leave channel: %v", m.Username(), err)
-		m.WriteMessage(fmt.Sprintf("failed to leave #%s: %v", cmd.ChannelName, err))
+		log.Printf("Debug: %s failed to leave room: %v", m.Username(), err)
+		m.WriteMessage(fmt.Sprintf("failed to leave #%s: %v", cmd.RoomName, err))
 		return
 	}
 
-	m.WriteMessage(fmt.Sprintf("you've left #%s", cmd.ChannelName))
+	m.WriteMessage(fmt.Sprintf("you've left #%s", cmd.RoomName))
 }
 
 func (h *WebSocketHandler) handleSendMessage(ctx context.Context, m *ChatMember, cmd *SendMessageCommand) {
-	err := h.chatService.SendMessageToRoom(ctx, cmd.ChannelName, m, cmd.Message)
+	err := h.chatService.SendMessageToRoom(ctx, cmd.RoomName, m, cmd.Message)
 	if err != nil {
 		log.Printf("Debug: %s failed to send message: %v", m.Username(), err)
 		m.WriteMessage(fmt.Sprintf("failed to send message: %v", err))
 		return
 	}
 
-	m.WriteMessage(fmt.Sprintf("#%s: @%s: %s", cmd.ChannelName, m.Username(), cmd.Message))
+	m.WriteMessage(fmt.Sprintf("#%s: @%s: %s", cmd.RoomName, m.Username(), cmd.Message))
 }

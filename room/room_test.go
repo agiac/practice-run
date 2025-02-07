@@ -160,6 +160,22 @@ func (s *ServiceSuite) TestSendMessage() {
 			MemberName: "user_2",
 		}, *member1.lastNotification.(*room.MemberJoinedEvent))
 	})
+
+	s.Run("send a message to a room the user is not a member of", func() {
+		// Given
+		r, _ := s.service.CreateRoom(context.Background(), "test_room")
+		member1 := &MockMember{username: "user_1"}
+		member2 := &MockMember{username: "user_2"}
+		_ = s.service.AddMember(context.Background(), r, member1)
+
+		// When
+		err := s.service.SendMessage(context.Background(), r, member2, "hello, world!")
+
+		// Then
+		s.Error(err)
+		s.Nil(member1.lastNotification)
+		s.Nil(member2.lastNotification)
+	})
 }
 
 func (s *ServiceSuite) hasMember(r *room.Room, m room.Member) bool {
