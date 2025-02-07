@@ -3,27 +3,13 @@ package main
 import (
 	"log"
 	"net/http"
-	"practice-run/chat"
 	"practice-run/handler"
-
-	"github.com/gorilla/websocket"
 )
 
 func main() {
 	// TODO: improve context and shutdown handling
 
-	u := &websocket.Upgrader{
-		ReadBufferSize:  1024,
-		WriteBufferSize: 1024,
-	}
-
-	s := chat.MakeChatService()
-
-	h := handler.NewWebSocketHandler(u, s)
-
-	http.HandleFunc("/ws", h.ServeHTTP)
-
-	err := http.ListenAndServe(":8080", nil)
+	err := http.ListenAndServe(":8080", handler.MakeHandler())
 
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)
