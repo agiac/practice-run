@@ -22,7 +22,7 @@ func (r *Room) Name() string {
 	return r.name
 }
 
-func (r *Room) AddMember(ctx context.Context, m Member) error {
+func (r *Room) addMember(ctx context.Context, m Member) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -36,7 +36,7 @@ func (r *Room) AddMember(ctx context.Context, m Member) error {
 	return nil
 }
 
-func (r *Room) RemoveMember(ctx context.Context, m Member) error {
+func (r *Room) removeMember(ctx context.Context, m Member) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -45,7 +45,7 @@ func (r *Room) RemoveMember(ctx context.Context, m Member) error {
 	return nil
 }
 
-func (r *Room) SendMessage(ctx context.Context, m Member, message string) error {
+func (r *Room) sendMessage(ctx context.Context, m Member, message string) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 

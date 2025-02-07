@@ -10,6 +10,9 @@ import (
 //go:generate mockgen -destination mocks/mock_room_service.go -package=mocks . RoomService
 type RoomService interface {
 	CreateRoom(ctx context.Context, roomName string) (*room.Room, error)
+	AddMember(ctx context.Context, r *room.Room, m room.Member) error
+	RemoveMember(ctx context.Context, r *room.Room, m room.Member) error
+	SendMessage(ctx context.Context, r *room.Room, m room.Member, message string) error
 }
 
 type Service struct {
@@ -42,7 +45,7 @@ func (c *Service) AddMemberToRoom(ctx context.Context, roomName string, member r
 		c.rooms[roomName] = r
 	}
 
-	err = r.AddMember(ctx, member)
+	err = c.rs.AddMember(ctx, r, member)
 	if err != nil {
 		return fmt.Errorf("failed to add member to room: %w", err)
 	}
@@ -59,7 +62,7 @@ func (c *Service) RemoveMemberFromRoom(ctx context.Context, roomName string, mem
 		return nil
 	}
 
-	err := r.RemoveMember(ctx, member)
+	err := c.rs.RemoveMember(ctx, r, member)
 	if err != nil {
 		return fmt.Errorf("failed to remove member from room: %w", err)
 	}
@@ -76,7 +79,7 @@ func (c *Service) SendMessageToRoom(ctx context.Context, roomName string, member
 		return fmt.Errorf("room %s not found", roomName)
 	}
 
-	err := r.SendMessage(ctx, member, message)
+	err := c.rs.SendMessage(ctx, r, member, message)
 	if err != nil {
 		return fmt.Errorf("failed to send message to room: %w", err)
 	}

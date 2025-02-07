@@ -41,6 +41,20 @@ func (m *MockRoomService) EXPECT() *MockRoomServiceMockRecorder {
 	return m.recorder
 }
 
+// AddMember mocks base method.
+func (m_2 *MockRoomService) AddMember(ctx context.Context, r *room.Room, m room.Member) error {
+	m_2.ctrl.T.Helper()
+	ret := m_2.ctrl.Call(m_2, "AddMember", ctx, r, m)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// AddMember indicates an expected call of AddMember.
+func (mr *MockRoomServiceMockRecorder) AddMember(ctx, r, m any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddMember", reflect.TypeOf((*MockRoomService)(nil).AddMember), ctx, r, m)
+}
+
 // CreateRoom mocks base method.
 func (m *MockRoomService) CreateRoom(ctx context.Context, roomName string) (*room.Room, error) {
 	m.ctrl.T.Helper()
@@ -54,4 +68,32 @@ func (m *MockRoomService) CreateRoom(ctx context.Context, roomName string) (*roo
 func (mr *MockRoomServiceMockRecorder) CreateRoom(ctx, roomName any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateRoom", reflect.TypeOf((*MockRoomService)(nil).CreateRoom), ctx, roomName)
+}
+
+// RemoveMember mocks base method.
+func (m_2 *MockRoomService) RemoveMember(ctx context.Context, r *room.Room, m room.Member) error {
+	m_2.ctrl.T.Helper()
+	ret := m_2.ctrl.Call(m_2, "RemoveMember", ctx, r, m)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// RemoveMember indicates an expected call of RemoveMember.
+func (mr *MockRoomServiceMockRecorder) RemoveMember(ctx, r, m any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveMember", reflect.TypeOf((*MockRoomService)(nil).RemoveMember), ctx, r, m)
+}
+
+// SendMessage mocks base method.
+func (m_2 *MockRoomService) SendMessage(ctx context.Context, r *room.Room, m room.Member, message string) error {
+	m_2.ctrl.T.Helper()
+	ret := m_2.ctrl.Call(m_2, "SendMessage", ctx, r, m, message)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SendMessage indicates an expected call of SendMessage.
+func (mr *MockRoomServiceMockRecorder) SendMessage(ctx, r, m, message any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendMessage", reflect.TypeOf((*MockRoomService)(nil).SendMessage), ctx, r, m, message)
 }
