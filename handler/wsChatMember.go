@@ -1,4 +1,4 @@
-package chat
+package handler
 
 import (
 	"log"
@@ -8,9 +8,10 @@ import (
 )
 
 type WSChatMember struct {
+	mu   sync.Mutex
+	conn *websocket.Conn
+
 	username string
-	mu       sync.Mutex
-	conn     *websocket.Conn
 }
 
 func NewChatMember(username string, conn *websocket.Conn) *WSChatMember {

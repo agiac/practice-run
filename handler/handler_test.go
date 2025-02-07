@@ -80,7 +80,7 @@ func (s *Suite) TestJoinChannel() {
 		server := httptest.NewServer(s.h)
 		defer server.Close()
 
-		s.s.EXPECT().JoinChannel(gomock.Any(), "room_1", gomock.Any()).Return(nil)
+		s.s.EXPECT().AddMemberToRoom(gomock.Any(), "room_1", gomock.Any()).Return(nil)
 
 		conn := s.createConnection(server, "user_1")
 
@@ -101,7 +101,7 @@ func (s *Suite) TestJoinChannel() {
 		server := httptest.NewServer(s.h)
 		defer server.Close()
 
-		s.s.EXPECT().JoinChannel(gomock.Any(), "room_1", gomock.Any()).Return(errors.New("some error"))
+		s.s.EXPECT().AddMemberToRoom(gomock.Any(), "room_1", gomock.Any()).Return(errors.New("some error"))
 
 		conn := s.createConnection(server, "user_1")
 
@@ -124,8 +124,8 @@ func (s *Suite) TestLeaveChannel() {
 		server := httptest.NewServer(s.h)
 		defer server.Close()
 
-		s.s.EXPECT().JoinChannel(gomock.Any(), "room_1", gomock.Any()).Return(nil)
-		s.s.EXPECT().LeaveChannel(gomock.Any(), "room_1", gomock.Any()).Return(nil)
+		s.s.EXPECT().AddMemberToRoom(gomock.Any(), "room_1", gomock.Any()).Return(nil)
+		s.s.EXPECT().RemoveMemberFromRoom(gomock.Any(), "room_1", gomock.Any()).Return(nil)
 
 		conn := s.createConnection(server, "user_1")
 
@@ -151,8 +151,8 @@ func (s *Suite) TestLeaveChannel() {
 		server := httptest.NewServer(s.h)
 		defer server.Close()
 
-		s.s.EXPECT().JoinChannel(gomock.Any(), "room_1", gomock.Any()).Return(nil)
-		s.s.EXPECT().LeaveChannel(gomock.Any(), "room_1", gomock.Any()).Return(errors.New("some error"))
+		s.s.EXPECT().AddMemberToRoom(gomock.Any(), "room_1", gomock.Any()).Return(nil)
+		s.s.EXPECT().RemoveMemberFromRoom(gomock.Any(), "room_1", gomock.Any()).Return(errors.New("some error"))
 
 		conn := s.createConnection(server, "user_1")
 
@@ -179,8 +179,8 @@ func (s *Suite) TestSendMessage() {
 		server := httptest.NewServer(s.h)
 		defer server.Close()
 
-		s.s.EXPECT().JoinChannel(gomock.Any(), "room_1", gomock.Any()).Return(nil)
-		s.s.EXPECT().SendMessage(gomock.Any(), "room_1", gomock.Any(), "hello, world!").Return(nil)
+		s.s.EXPECT().AddMemberToRoom(gomock.Any(), "room_1", gomock.Any()).Return(nil)
+		s.s.EXPECT().SendMessageToRoom(gomock.Any(), "room_1", gomock.Any(), "hello, world!").Return(nil)
 
 		conn := s.createConnection(server, "user_1")
 
@@ -203,8 +203,8 @@ func (s *Suite) TestSendMessage() {
 		server := httptest.NewServer(s.h)
 		defer server.Close()
 
-		s.s.EXPECT().JoinChannel(gomock.Any(), "room_1", gomock.Any()).Return(nil)
-		s.s.EXPECT().SendMessage(gomock.Any(), "room_1", gomock.Any(), "hello, world!").Return(errors.New("some error"))
+		s.s.EXPECT().AddMemberToRoom(gomock.Any(), "room_1", gomock.Any()).Return(nil)
+		s.s.EXPECT().SendMessageToRoom(gomock.Any(), "room_1", gomock.Any(), "hello, world!").Return(errors.New("some error"))
 
 		conn := s.createConnection(server, "user_1")
 
