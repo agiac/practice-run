@@ -5,41 +5,16 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"practice-run/service"
-	"sync"
+	"practice-run/chat"
 
 	"github.com/gorilla/websocket"
 )
 
-type ChannelMember struct {
-	username string
-	mu       sync.Mutex
-	conn     *websocket.Conn
-}
-
-func NewChannelMember(username string, conn *websocket.Conn) *ChannelMember {
-	return &ChannelMember{username: username, mu: sync.Mutex{}, conn: conn}
-}
-
-func (m *ChannelMember) Username() string {
-	return m.username
-}
-
-func (m *ChannelMember) Notify(event string) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	err := m.conn.WriteMessage(websocket.TextMessage, []byte(event))
-	if err != nil {
-		log.Printf("Error: failed to notify member %s: %v", m.username, err)
-	}
-}
-
 //go:generate mockgen -destination mocks/chat_service_mock.go -package mocks . ChatService
 type ChatService interface {
-	JoinChannel(ctx context.Context, channelName string, member service.ChannelMember) error
-	LeaveChannel(ctx context.Context, channelName string, member service.ChannelMember) error
-	SendMessage(ctx context.Context, channelName string, member service.ChannelMember, message string) error
+	JoinChannel(ctx context.Context, channelName string, member chat.Member) error
+	LeaveChannel(ctx context.Context, channelName string, member chat.Member) error
+	SendMessage(ctx context.Context, channelName string, member chat.Member, message string) error
 }
 
 type WebSocketHandler struct {
@@ -77,7 +52,7 @@ func (h *WebSocketHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}(conn)
 
 	// Create channel member
-	member := &ChannelMember{username: username, conn: conn}
+	member := chat.NewChatMember(username, conn)
 
 	// Send welcome message upon successful connection
 	member.Notify(fmt.Sprintf("welcome, %s!", username))
@@ -141,7 +116,7 @@ func (h *WebSocketHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *WebSocketHandler) handleJoinChannel(ctx context.Context, m *ChannelMember, cmd *JoinChannelCommand) {
+func (h *WebSocketHandler) handleJoinChannel(ctx context.Context, m *chat.WSChatMember, cmd *JoinChannelCommand) {
 	err := h.s.JoinChannel(ctx, cmd.ChannelName, m)
 	if err != nil {
 		log.Printf("Debug: %s failed to join channel: %v", m.Username(), err)
@@ -153,7 +128,7 @@ func (h *WebSocketHandler) handleJoinChannel(ctx context.Context, m *ChannelMemb
 	m.Notify(fmt.Sprintf("%s joined channel #%s", m.Username(), cmd.ChannelName))
 }
 
-func (h *WebSocketHandler) handleLeaveChannel(ctx context.Context, m *ChannelMember, cmd *LeaveChannelCommand) {
+func (h *WebSocketHandler) handleLeaveChannel(ctx context.Context, m *chat.WSChatMember, cmd *LeaveChannelCommand) {
 	err := h.s.LeaveChannel(ctx, cmd.ChannelName, m)
 	if err != nil {
 		log.Printf("Debug: %s failed to leave channel: %v", m.Username(), err)
@@ -165,7 +140,7 @@ func (h *WebSocketHandler) handleLeaveChannel(ctx context.Context, m *ChannelMem
 	m.Notify(fmt.Sprintf("%s left channel #%s", m.Username(), cmd.ChannelName))
 }
 
-func (h *WebSocketHandler) handleSendMessage(ctx context.Context, m *ChannelMember, cmd *SendMessageCommand) {
+func (h *WebSocketHandler) handleSendMessage(ctx context.Context, m *chat.WSChatMember, cmd *SendMessageCommand) {
 	err := h.s.SendMessage(ctx, cmd.ChannelName, m, cmd.Message)
 	if err != nil {
 		log.Printf("Debug: %s failed to send message: %v", m.Username(), err)

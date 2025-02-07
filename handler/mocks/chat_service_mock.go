@@ -11,7 +11,7 @@ package mocks
 
 import (
 	context "context"
-	service "practice-run/service"
+	chat "practice-run/chat"
 	reflect "reflect"
 
 	gomock "go.uber.org/mock/gomock"
@@ -42,7 +42,7 @@ func (m *MockChatService) EXPECT() *MockChatServiceMockRecorder {
 }
 
 // JoinChannel mocks base method.
-func (m *MockChatService) JoinChannel(ctx context.Context, channelName string, member service.ChannelMember) error {
+func (m *MockChatService) JoinChannel(ctx context.Context, channelName string, member chat.Member) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "JoinChannel", ctx, channelName, member)
 	ret0, _ := ret[0].(error)
@@ -56,7 +56,7 @@ func (mr *MockChatServiceMockRecorder) JoinChannel(ctx, channelName, member any)
 }
 
 // LeaveChannel mocks base method.
-func (m *MockChatService) LeaveChannel(ctx context.Context, channelName string, member service.ChannelMember) error {
+func (m *MockChatService) LeaveChannel(ctx context.Context, channelName string, member chat.Member) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "LeaveChannel", ctx, channelName, member)
 	ret0, _ := ret[0].(error)
@@ -70,7 +70,7 @@ func (mr *MockChatServiceMockRecorder) LeaveChannel(ctx, channelName, member any
 }
 
 // SendMessage mocks base method.
-func (m *MockChatService) SendMessage(ctx context.Context, channelName string, member service.ChannelMember, message string) error {
+func (m *MockChatService) SendMessage(ctx context.Context, channelName string, member chat.Member, message string) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SendMessage", ctx, channelName, member, message)
 	ret0, _ := ret[0].(error)

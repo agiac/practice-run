@@ -3,8 +3,8 @@ package main
 import (
 	"log"
 	"net/http"
+	"practice-run/chat"
 	"practice-run/handler"
-	"practice-run/service"
 
 	"github.com/gorilla/websocket"
 )
@@ -17,7 +17,7 @@ func main() {
 		WriteBufferSize: 1024,
 	}
 
-	s := service.NewChat()
+	s := chat.NewService()
 
 	h := handler.NewWebSocketHandler(u, s)
 
