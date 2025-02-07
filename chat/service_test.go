@@ -14,9 +14,9 @@ import (
 
 type ChatSuite struct {
 	suite.Suite
-	service         *chat.Service
-	mockCtrl        *gomock.Controller
-	mockRoomService *mocks.MockRoomService
+	ctrl        *gomock.Controller
+	roomService *mocks.RoomService
+	service     *chat.Service
 }
 
 func TestChatSuite(t *testing.T) {
@@ -24,13 +24,13 @@ func TestChatSuite(t *testing.T) {
 }
 
 func (s *ChatSuite) SetupSubTest() {
-	s.mockCtrl = gomock.NewController(s.T())
-	s.mockRoomService = mocks.NewMockRoomService(s.mockCtrl)
-	s.service = chat.NewService(s.mockRoomService)
+	s.ctrl = gomock.NewController(s.T())
+	s.roomService = mocks.NewRoomService(s.ctrl)
+	s.service = chat.NewService(s.roomService)
 }
 
 func (s *ChatSuite) TearDownSubTest() {
-	s.mockCtrl.Finish()
+	s.ctrl.Finish()
 }
 
 func (s *ChatSuite) TestAddMemberToRoom() {
@@ -40,8 +40,8 @@ func (s *ChatSuite) TestAddMemberToRoom() {
 		r := &room.Room{}
 		member := &MockMember{username: "user_1"}
 
-		s.mockRoomService.EXPECT().CreateRoom(ctx, "room_1").Return(r, nil)
-		s.mockRoomService.EXPECT().AddMember(ctx, r, member).Return(nil)
+		s.roomService.EXPECT().CreateRoom(ctx, "room_1").Return(r, nil)
+		s.roomService.EXPECT().AddMember(ctx, r, member).Return(nil)
 
 		// When
 		err := s.service.AddMemberToRoom(context.Background(), "room_1", member)
@@ -55,7 +55,7 @@ func (s *ChatSuite) TestAddMemberToRoom() {
 		ctx := context.Background()
 		member := &MockMember{username: "user_1"}
 
-		s.mockRoomService.EXPECT().CreateRoom(ctx, "room_1").Return(nil, fmt.Errorf("failed to create room"))
+		s.roomService.EXPECT().CreateRoom(ctx, "room_1").Return(nil, fmt.Errorf("failed to create room"))
 
 		// When
 		err := s.service.AddMemberToRoom(context.Background(), "room_1", member)
@@ -71,9 +71,9 @@ func (s *ChatSuite) TestAddMemberToRoom() {
 		member1 := &MockMember{username: "user_1"}
 		member2 := &MockMember{username: "user_2"}
 
-		s.mockRoomService.EXPECT().CreateRoom(ctx, "room_1").Return(r, nil)
-		s.mockRoomService.EXPECT().AddMember(ctx, r, member1).Return(nil)
-		s.mockRoomService.EXPECT().AddMember(ctx, r, member2).Return(nil)
+		s.roomService.EXPECT().CreateRoom(ctx, "room_1").Return(r, nil)
+		s.roomService.EXPECT().AddMember(ctx, r, member1).Return(nil)
+		s.roomService.EXPECT().AddMember(ctx, r, member2).Return(nil)
 
 		_ = s.service.AddMemberToRoom(context.Background(), "room_1", member1)
 
@@ -91,9 +91,9 @@ func (s *ChatSuite) TestAddMemberToRoom() {
 		member1 := &MockMember{username: "user_1"}
 		member2 := &MockMember{username: "user_2"}
 
-		s.mockRoomService.EXPECT().CreateRoom(ctx, "room_1").Return(r, nil)
-		s.mockRoomService.EXPECT().AddMember(ctx, r, member1).Return(nil)
-		s.mockRoomService.EXPECT().AddMember(ctx, r, member2).Return(fmt.Errorf("failed to add member"))
+		s.roomService.EXPECT().CreateRoom(ctx, "room_1").Return(r, nil)
+		s.roomService.EXPECT().AddMember(ctx, r, member1).Return(nil)
+		s.roomService.EXPECT().AddMember(ctx, r, member2).Return(fmt.Errorf("failed to add member"))
 
 		_ = s.service.AddMemberToRoom(context.Background(), "room_1", member1)
 
@@ -112,9 +112,9 @@ func (s *ChatSuite) TestRemoveMemberFromRoom() {
 		r := &room.Room{}
 		member := &MockMember{username: "user_1"}
 
-		s.mockRoomService.EXPECT().CreateRoom(ctx, "room_1").Return(r, nil)
-		s.mockRoomService.EXPECT().AddMember(ctx, r, member).Return(nil)
-		s.mockRoomService.EXPECT().RemoveMember(ctx, r, member).Return(nil)
+		s.roomService.EXPECT().CreateRoom(ctx, "room_1").Return(r, nil)
+		s.roomService.EXPECT().AddMember(ctx, r, member).Return(nil)
+		s.roomService.EXPECT().RemoveMember(ctx, r, member).Return(nil)
 
 		_ = s.service.AddMemberToRoom(context.Background(), "room_1", member)
 
@@ -131,9 +131,9 @@ func (s *ChatSuite) TestRemoveMemberFromRoom() {
 		r := &room.Room{}
 		member := &MockMember{username: "user_1"}
 
-		s.mockRoomService.EXPECT().CreateRoom(ctx, "room_1").Return(r, nil)
-		s.mockRoomService.EXPECT().AddMember(ctx, r, member).Return(nil)
-		s.mockRoomService.EXPECT().RemoveMember(ctx, r, member).Return(fmt.Errorf("failed to remove member"))
+		s.roomService.EXPECT().CreateRoom(ctx, "room_1").Return(r, nil)
+		s.roomService.EXPECT().AddMember(ctx, r, member).Return(nil)
+		s.roomService.EXPECT().RemoveMember(ctx, r, member).Return(fmt.Errorf("failed to remove member"))
 
 		_ = s.service.AddMemberToRoom(context.Background(), "room_1", member)
 
@@ -164,9 +164,9 @@ func (s *ChatSuite) TestSendMessageToRoom() {
 		r := &room.Room{}
 		member := &MockMember{username: "user_1"}
 
-		s.mockRoomService.EXPECT().CreateRoom(ctx, "room_1").Return(r, nil)
-		s.mockRoomService.EXPECT().AddMember(ctx, r, member).Return(nil)
-		s.mockRoomService.EXPECT().SendMessage(ctx, r, member, "hello").Return(nil)
+		s.roomService.EXPECT().CreateRoom(ctx, "room_1").Return(r, nil)
+		s.roomService.EXPECT().AddMember(ctx, r, member).Return(nil)
+		s.roomService.EXPECT().SendMessage(ctx, r, member, "hello").Return(nil)
 
 		_ = s.service.AddMemberToRoom(context.Background(), "room_1", member)
 
@@ -183,9 +183,9 @@ func (s *ChatSuite) TestSendMessageToRoom() {
 		r := &room.Room{}
 		member := &MockMember{username: "user_1"}
 
-		s.mockRoomService.EXPECT().CreateRoom(ctx, "room_1").Return(r, nil)
-		s.mockRoomService.EXPECT().AddMember(ctx, r, member).Return(nil)
-		s.mockRoomService.EXPECT().SendMessage(ctx, r, member, "hello").Return(fmt.Errorf("failed to send message"))
+		s.roomService.EXPECT().CreateRoom(ctx, "room_1").Return(r, nil)
+		s.roomService.EXPECT().AddMember(ctx, r, member).Return(nil)
+		s.roomService.EXPECT().SendMessage(ctx, r, member, "hello").Return(fmt.Errorf("failed to send message"))
 
 		_ = s.service.AddMemberToRoom(context.Background(), "room_1", member)
 

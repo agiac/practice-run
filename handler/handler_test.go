@@ -18,9 +18,9 @@ import (
 
 type Suite struct {
 	suite.Suite
-	ctrl *gomock.Controller
-	s    *mocks.MockChatService
-	h    *handler.WebSocketHandler
+	ctrl        *gomock.Controller
+	chatService *mocks.ChatService
+	handler     *handler.WebSocketHandler
 }
 
 func TestSuite(t *testing.T) {
@@ -29,8 +29,8 @@ func TestSuite(t *testing.T) {
 
 func (s *Suite) SetupTest() {
 	s.ctrl = gomock.NewController(s.T())
-	s.s = mocks.NewMockChatService(s.ctrl)
-	s.h = handler.NewWebSocketHandler(&websocket.Upgrader{}, s.s)
+	s.chatService = mocks.NewChatService(s.ctrl)
+	s.handler = handler.NewWebSocketHandler(&websocket.Upgrader{}, s.chatService)
 }
 
 func (s *Suite) TearDownTest() {
@@ -40,7 +40,7 @@ func (s *Suite) TearDownTest() {
 func (s *Suite) TestAuthentication() {
 	s.Run("reject unauthenticated requests", func() {
 		// Given
-		server := httptest.NewServer(s.h)
+		server := httptest.NewServer(s.handler)
 		defer server.Close()
 
 		// When
@@ -54,7 +54,7 @@ func (s *Suite) TestAuthentication() {
 
 	s.Run("accept authenticated requests", func() {
 		// Given
-		server := httptest.NewServer(s.h)
+		server := httptest.NewServer(s.handler)
 		defer server.Close()
 
 		// When
@@ -72,10 +72,10 @@ func (s *Suite) TestAuthentication() {
 func (s *Suite) TestJoinRoom() {
 	s.Run("join a room", func() {
 		// Given
-		server := httptest.NewServer(s.h)
+		server := httptest.NewServer(s.handler)
 		defer server.Close()
 
-		s.s.EXPECT().AddMemberToRoom(gomock.Any(), "room_1", gomock.Any()).Return(nil)
+		s.chatService.EXPECT().AddMemberToRoom(gomock.Any(), "room_1", gomock.Any()).Return(nil)
 
 		conn := s.createConnection(server, "user_1")
 
@@ -91,10 +91,10 @@ func (s *Suite) TestJoinRoom() {
 
 	s.Run("error", func() {
 		// Given
-		server := httptest.NewServer(s.h)
+		server := httptest.NewServer(s.handler)
 		defer server.Close()
 
-		s.s.EXPECT().AddMemberToRoom(gomock.Any(), "room_1", gomock.Any()).Return(errors.New("some error"))
+		s.chatService.EXPECT().AddMemberToRoom(gomock.Any(), "room_1", gomock.Any()).Return(errors.New("some error"))
 
 		conn := s.createConnection(server, "user_1")
 
@@ -112,11 +112,11 @@ func (s *Suite) TestJoinRoom() {
 func (s *Suite) TestLeaveRoom() {
 	s.Run("leave a room", func() {
 		// Given
-		server := httptest.NewServer(s.h)
+		server := httptest.NewServer(s.handler)
 		defer server.Close()
 
-		s.s.EXPECT().AddMemberToRoom(gomock.Any(), "room_1", gomock.Any()).Return(nil)
-		s.s.EXPECT().RemoveMemberFromRoom(gomock.Any(), "room_1", gomock.Any()).Return(nil)
+		s.chatService.EXPECT().AddMemberToRoom(gomock.Any(), "room_1", gomock.Any()).Return(nil)
+		s.chatService.EXPECT().RemoveMemberFromRoom(gomock.Any(), "room_1", gomock.Any()).Return(nil)
 
 		conn := s.createConnection(server, "user_1")
 
@@ -137,11 +137,11 @@ func (s *Suite) TestLeaveRoom() {
 
 	s.Run("error", func() {
 		// Given
-		server := httptest.NewServer(s.h)
+		server := httptest.NewServer(s.handler)
 		defer server.Close()
 
-		s.s.EXPECT().AddMemberToRoom(gomock.Any(), "room_1", gomock.Any()).Return(nil)
-		s.s.EXPECT().RemoveMemberFromRoom(gomock.Any(), "room_1", gomock.Any()).Return(errors.New("some error"))
+		s.chatService.EXPECT().AddMemberToRoom(gomock.Any(), "room_1", gomock.Any()).Return(nil)
+		s.chatService.EXPECT().RemoveMemberFromRoom(gomock.Any(), "room_1", gomock.Any()).Return(errors.New("some error"))
 
 		conn := s.createConnection(server, "user_1")
 
@@ -163,11 +163,11 @@ func (s *Suite) TestLeaveRoom() {
 func (s *Suite) TestSendMessage() {
 	s.Run("ok", func() {
 		// Given
-		server := httptest.NewServer(s.h)
+		server := httptest.NewServer(s.handler)
 		defer server.Close()
 
-		s.s.EXPECT().AddMemberToRoom(gomock.Any(), "room_1", gomock.Any()).Return(nil)
-		s.s.EXPECT().SendMessageToRoom(gomock.Any(), "room_1", gomock.Any(), "hello, world!").Return(nil)
+		s.chatService.EXPECT().AddMemberToRoom(gomock.Any(), "room_1", gomock.Any()).Return(nil)
+		s.chatService.EXPECT().SendMessageToRoom(gomock.Any(), "room_1", gomock.Any(), "hello, world!").Return(nil)
 
 		conn := s.createConnection(server, "user_1")
 
@@ -185,11 +185,11 @@ func (s *Suite) TestSendMessage() {
 
 	s.Run("error", func() {
 		// Given
-		server := httptest.NewServer(s.h)
+		server := httptest.NewServer(s.handler)
 		defer server.Close()
 
-		s.s.EXPECT().AddMemberToRoom(gomock.Any(), "room_1", gomock.Any()).Return(nil)
-		s.s.EXPECT().SendMessageToRoom(gomock.Any(), "room_1", gomock.Any(), "hello, world!").Return(errors.New("some error"))
+		s.chatService.EXPECT().AddMemberToRoom(gomock.Any(), "room_1", gomock.Any()).Return(nil)
+		s.chatService.EXPECT().SendMessageToRoom(gomock.Any(), "room_1", gomock.Any(), "hello, world!").Return(errors.New("some error"))
 
 		conn := s.createConnection(server, "user_1")
 

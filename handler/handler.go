@@ -10,8 +10,8 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-//go:generate mockgen -destination mocks/chat_service_mock.go -package mocks . ChatService
-type ChatService interface {
+//go:generate mockgen -destination mocks/chat_service_mock.go -mock_names chatService=ChatService -package mocks . chatService
+type chatService interface {
 	AddMemberToRoom(ctx context.Context, roomName string, member room.Member) error
 	RemoveMemberFromRoom(ctx context.Context, roomName string, member room.Member) error
 	SendMessageToRoom(ctx context.Context, roomName string, member room.Member, message string) error
@@ -19,10 +19,10 @@ type ChatService interface {
 
 type WebSocketHandler struct {
 	upgrader    *websocket.Upgrader
-	chatService ChatService
+	chatService chatService
 }
 
-func NewWebSocketHandler(upgrader *websocket.Upgrader, chatService ChatService) *WebSocketHandler {
+func NewWebSocketHandler(upgrader *websocket.Upgrader, chatService chatService) *WebSocketHandler {
 	return &WebSocketHandler{upgrader: upgrader, chatService: chatService}
 }
 

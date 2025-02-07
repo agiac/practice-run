@@ -7,8 +7,8 @@ import (
 	"sync"
 )
 
-//go:generate mockgen -destination mocks/mock_room_service.go -package=mocks . RoomService
-type RoomService interface {
+//go:generate mockgen -destination mocks/mock_room_service.go -mock_names roomService=RoomService -package=mocks . roomService
+type roomService interface {
 	CreateRoom(ctx context.Context, roomName string) (*room.Room, error)
 	AddMember(ctx context.Context, r *room.Room, m room.Member) error
 	RemoveMember(ctx context.Context, r *room.Room, m room.Member) error
@@ -19,10 +19,10 @@ type Service struct {
 	mu    sync.Mutex
 	rooms map[string]*room.Room
 
-	rs RoomService
+	rs roomService
 }
 
-func NewService(rs RoomService) *Service {
+func NewService(rs roomService) *Service {
 	return &Service{
 		mu:    sync.Mutex{},
 		rooms: make(map[string]*room.Room),
