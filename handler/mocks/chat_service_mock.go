@@ -11,7 +11,7 @@ package mocks
 
 import (
 	context "context"
-	chat "practice-run/chat"
+	room "practice-run/room"
 	reflect "reflect"
 
 	gomock "go.uber.org/mock/gomock"
@@ -42,7 +42,7 @@ func (m *MockChatService) EXPECT() *MockChatServiceMockRecorder {
 }
 
 // AddMemberToRoom mocks base method.
-func (m *MockChatService) AddMemberToRoom(ctx context.Context, roomName string, member chat.Member) error {
+func (m *MockChatService) AddMemberToRoom(ctx context.Context, roomName string, member room.Member) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "AddMemberToRoom", ctx, roomName, member)
 	ret0, _ := ret[0].(error)
@@ -56,7 +56,7 @@ func (mr *MockChatServiceMockRecorder) AddMemberToRoom(ctx, roomName, member any
 }
 
 // RemoveMemberFromRoom mocks base method.
-func (m *MockChatService) RemoveMemberFromRoom(ctx context.Context, roomName string, member chat.Member) error {
+func (m *MockChatService) RemoveMemberFromRoom(ctx context.Context, roomName string, member room.Member) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RemoveMemberFromRoom", ctx, roomName, member)
 	ret0, _ := ret[0].(error)
@@ -70,7 +70,7 @@ func (mr *MockChatServiceMockRecorder) RemoveMemberFromRoom(ctx, roomName, membe
 }
 
 // SendMessageToRoom mocks base method.
-func (m *MockChatService) SendMessageToRoom(ctx context.Context, roomName string, member chat.Member, message string) error {
+func (m *MockChatService) SendMessageToRoom(ctx context.Context, roomName string, member room.Member, message string) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SendMessageToRoom", ctx, roomName, member, message)
 	ret0, _ := ret[0].(error)

@@ -1,4 +1,4 @@
-package chat2
+package chat
 
 import "practice-run/room"
 

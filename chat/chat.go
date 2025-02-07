@@ -1,14 +1,13 @@
-package chat2
+package chat
 
 import (
 	"context"
 	"fmt"
-	"practice-run/chat"
 	"practice-run/room"
 	"sync"
 )
 
-//go:generate mockgen -destination=../mocks/mock_room_service.go -package=mocks practice-run/room RoomService
+//go:generate mockgen -destination mocks/mock_room_service.go -package=mocks . RoomService
 type RoomService interface {
 	CreateRoom(ctx context.Context, roomName string) (*room.Room, error)
 }
@@ -28,7 +27,7 @@ func NewService(rs RoomService) *Service {
 	}
 }
 
-func (c *Service) AddMemberToRoom(ctx context.Context, roomName string, member chat.Member) error {
+func (c *Service) AddMemberToRoom(ctx context.Context, roomName string, member room.Member) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -51,7 +50,7 @@ func (c *Service) AddMemberToRoom(ctx context.Context, roomName string, member c
 	return nil
 }
 
-func (c *Service) RemoveMemberFromRoom(ctx context.Context, roomName string, member chat.Member) error {
+func (c *Service) RemoveMemberFromRoom(ctx context.Context, roomName string, member room.Member) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -68,7 +67,7 @@ func (c *Service) RemoveMemberFromRoom(ctx context.Context, roomName string, mem
 	return nil
 }
 
-func (c *Service) SendMessageToRoom(ctx context.Context, roomName string, member chat.Member, message string) error {
+func (c *Service) SendMessageToRoom(ctx context.Context, roomName string, member room.Member, message string) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 

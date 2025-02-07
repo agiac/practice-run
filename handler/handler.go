@@ -5,16 +5,16 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"practice-run/chat"
+	"practice-run/room"
 
 	"github.com/gorilla/websocket"
 )
 
 //go:generate mockgen -destination mocks/chat_service_mock.go -package mocks . ChatService
 type ChatService interface {
-	AddMemberToRoom(ctx context.Context, roomName string, member chat.Member) error
-	RemoveMemberFromRoom(ctx context.Context, roomName string, member chat.Member) error
-	SendMessageToRoom(ctx context.Context, roomName string, member chat.Member, message string) error
+	AddMemberToRoom(ctx context.Context, roomName string, member room.Member) error
+	RemoveMemberFromRoom(ctx context.Context, roomName string, member room.Member) error
+	SendMessageToRoom(ctx context.Context, roomName string, member room.Member, message string) error
 }
 
 type WebSocketHandler struct {
