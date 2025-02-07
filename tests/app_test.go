@@ -1,15 +1,10 @@
 package tests
 
 import (
-	"encoding/base64"
-	"fmt"
-	"net/http"
 	"net/http/httptest"
 	"practice-run/internal/provider"
-	"strings"
 	"testing"
 
-	"github.com/gorilla/websocket"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -62,17 +57,4 @@ func (s *Suite) TestApp() {
 	client2.LeaveRoom("room1")
 	client1.ExpectMessage("#room1: @user2 left")
 	client3.ExpectMessage("#room1: @user2 left")
-}
-
-func (s *Suite) createConnection(username string) *websocket.Conn {
-	s.T().Helper()
-
-	s.T().Log(s.server.URL)
-
-	conn, _, err := websocket.DefaultDialer.Dial(strings.ReplaceAll(s.server.URL, "http", "ws"), http.Header{
-		"Authorization": []string{fmt.Sprintf("Basic %s", base64.StdEncoding.EncodeToString([]byte(username+":password")))},
-	})
-	s.Require().NoError(err)
-
-	return conn
 }

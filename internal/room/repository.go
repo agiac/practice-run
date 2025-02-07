@@ -27,7 +27,11 @@ func (r *Repository) CreateRoom(ctx context.Context, name string) (*Room, error)
 		return nil, fmt.Errorf("room already exists")
 	}
 
-	room = &Room{name: name, members: make(map[string]Member)}
+	room = &Room{
+		name:    name,
+		members: make(map[string]Member),
+	}
+
 	r.rooms[name] = room
 
 	return room, nil
