@@ -54,7 +54,7 @@ func (h *WebSocketHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	member := NewChatMember(username, conn)
 
 	for {
-		mt, raw, err := conn.ReadMessage()
+		mt, msg, err := conn.ReadMessage()
 		if err != nil {
 			log.Printf("Error: failed to read message, breaking connection: %v", err)
 			break
@@ -65,26 +65,27 @@ func (h *WebSocketHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 
-		msg, err := ParseMessage(string(raw))
+		cmd, err := ParseMessage(string(msg))
 		if err != nil {
 			member.Notify(fmt.Sprintf("bad request: failed to parse message: %v", err))
 			continue
 		}
 
-		switch cmd := msg.(type) {
-		case *JoinChannelCommand:
-			h.handleJoinChannel(ctx, member, cmd)
-		case *LeaveChannelCommand:
-			h.handleLeaveChannel(ctx, member, cmd)
-		case *SendMessageCommand:
-			h.handleSendMessage(ctx, member, cmd)
-		//case *SendDirectMessageCommand:
-		//case *ListChannelsCommand:
-		//case *ListChannelUsersCommand:
-		default:
-			log.Printf("Error: unsupported message type: %T", cmd)
-			member.Notify("server error")
-		}
+		h.handleCommand(ctx, member, cmd)
+	}
+}
+
+func (h *WebSocketHandler) handleCommand(ctx context.Context, m *WSChatMember, cmd interface{}) {
+	switch c := cmd.(type) {
+	case *JoinChannelCommand:
+		h.handleJoinChannel(ctx, m, c)
+	case *LeaveChannelCommand:
+		h.handleLeaveChannel(ctx, m, c)
+	case *SendMessageCommand:
+		h.handleSendMessage(ctx, m, c)
+	default:
+		log.Printf("Error: unsupported command type: %T", cmd)
+		m.Notify("server error")
 	}
 }
 
@@ -117,5 +118,6 @@ func (h *WebSocketHandler) handleSendMessage(ctx context.Context, m *WSChatMembe
 		m.Notify(fmt.Sprintf("failed to send message: %v", err))
 		return
 	}
+
 	m.Notify(fmt.Sprintf("#%s: @%s: %s", cmd.ChannelName, m.Username(), cmd.Message))
 }
