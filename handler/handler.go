@@ -51,32 +51,10 @@ func (h *WebSocketHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}(conn)
 
-	// Create channel member
 	member := NewChatMember(username, conn)
 
-	// Send welcome message upon successful connection
 	member.Notify(fmt.Sprintf("welcome, %s!", username))
-	//h.WriteMessage(conn, fmt.Sprintf("welcome, %s!", username))
 
-	// Get updates
-	//updates, err := h.s.GetUserUpdates(ctx, username)
-	//if err != nil {
-	//	log.Printf("Error: failed to get updates stream for user %s: %v", username, err)
-	//	return
-	//}
-	//
-	//go func() {
-	//	for {
-	//		select {
-	//		case update := <-updates:
-	//			h.WriteMessage(conn, update)
-	//		case <-ctx.Done():
-	//			return
-	//		}
-	//	}
-	//}()
-
-	// Handle messages
 	for {
 		mt, raw, err := conn.ReadMessage()
 		if err != nil {
@@ -85,15 +63,12 @@ func (h *WebSocketHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if mt != websocket.TextMessage {
-			//h.WriteMessage(conn, "bad request: only text messages are supported")
 			member.Notify("bad request: only text messages are supported")
 			continue
 		}
 
-		// Handle message
 		msg, err := ParseMessage(string(raw))
 		if err != nil {
-			//h.WriteMessage(conn, fmt.Sprintf("bad request: failed to parse message: %v", err))
 			member.Notify(fmt.Sprintf("bad request: failed to parse message: %v", err))
 			continue
 		}
@@ -110,7 +85,6 @@ func (h *WebSocketHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		//case *ListChannelUsersCommand:
 		default:
 			log.Printf("Error: unsupported message type: %T", cmd)
-			//h.WriteMessage(conn, "server error")
 			member.Notify("server error")
 		}
 	}
@@ -120,11 +94,9 @@ func (h *WebSocketHandler) handleJoinChannel(ctx context.Context, m *WSChatMembe
 	err := h.s.AddMemberToRoom(ctx, cmd.ChannelName, m)
 	if err != nil {
 		log.Printf("Debug: %s failed to join channel: %v", m.Username(), err)
-		//h.WriteMessage(conn, fmt.Sprintf("failed to join channel: %v", err))
 		m.Notify(fmt.Sprintf("failed to join channel: %v", err))
 		return
 	}
-	//h.WriteMessage(conn, fmt.Sprintf("%s joined channel #%s", username, cmd.ChannelName))
 	m.Notify(fmt.Sprintf("%s joined channel #%s", m.Username(), cmd.ChannelName))
 }
 
@@ -132,11 +104,10 @@ func (h *WebSocketHandler) handleLeaveChannel(ctx context.Context, m *WSChatMemb
 	err := h.s.RemoveMemberFromRoom(ctx, cmd.ChannelName, m)
 	if err != nil {
 		log.Printf("Debug: %s failed to leave channel: %v", m.Username(), err)
-		//h.WriteMessage(conn, fmt.Sprintf("failed to leave channel: %v", err))
 		m.Notify(fmt.Sprintf("failed to leave channel: %v", err))
 		return
 	}
-	//h.WriteMessage(conn, fmt.Sprintf("%s left channel #%s", username, cmd.ChannelName))
+
 	m.Notify(fmt.Sprintf("%s left channel #%s", m.Username(), cmd.ChannelName))
 }
 
@@ -144,10 +115,8 @@ func (h *WebSocketHandler) handleSendMessage(ctx context.Context, m *WSChatMembe
 	err := h.s.SendMessageToRoom(ctx, cmd.ChannelName, m, cmd.Message)
 	if err != nil {
 		log.Printf("Debug: %s failed to send message: %v", m.Username(), err)
-		//h.WriteMessage(conn, fmt.Sprintf("failed to send message: %v", err))
 		m.Notify(fmt.Sprintf("failed to send message: %v", err))
 		return
 	}
-	//h.WriteMessage(conn, fmt.Sprintf("#%s: @%s: %s", cmd.ChannelName, username, cmd.Message))
 	m.Notify(fmt.Sprintf("#%s: @%s: %s", cmd.ChannelName, m.Username(), cmd.Message))
 }
