@@ -1,114 +1,114 @@
-package room
+package room_test
 
 import (
 	"context"
-	"sync"
+	"practice-run/room"
 	"testing"
 
 	"github.com/stretchr/testify/suite"
 )
 
-type RoomSuite struct {
+type ServiceSuite struct {
 	suite.Suite
-	room    *Room
-	service *Service
+	service *room.Service
 }
 
-func TestRoomSuite(t *testing.T) {
-	suite.Run(t, new(RoomSuite))
+func TestServiceSuite(t *testing.T) {
+	suite.Run(t, new(ServiceSuite))
 }
 
-func (s *RoomSuite) SetupTest() {
-	s.service = &Service{}
-	s.room = &Room{
-		name:    "test_room",
-		mu:      sync.Mutex{},
-		members: make(map[string]Member),
-	}
+func (s *ServiceSuite) SetupTest() {
+	s.service = room.NewService()
 }
 
-func (s *RoomSuite) TestAddMember() {
-	s.Run("add a member", func() {
-		// Given
-		member := &MockMember{username: "user_1"}
-
+func (s *ServiceSuite) TestCreateRoom() {
+	s.Run("create a new room", func() {
 		// When
-		err := s.room.addMember(context.Background(), member)
+		r, err := s.service.CreateRoom(context.Background(), "test_room")
 
 		// Then
 		s.NoError(err)
-		s.Contains(s.room.members, "user_1")
-		s.Equal(member, s.room.members["user_1"])
-	})
+		s.NotNil(r)
+		s.Equal("test_room", r.Name())
 
-	s.Run("add existing member", func() {
+		members, err := r.Members()
+		s.NoError(err)
+		s.Empty(members)
+	})
+}
+
+func (s *ServiceSuite) TestAddMember() {
+	s.Run("add a member to a room", func() {
 		// Given
+		r, _ := s.service.CreateRoom(context.Background(), "test_room")
 		member := &MockMember{username: "user_1"}
 
-		_ = s.room.addMember(context.Background(), member)
+		// When
+		err := s.service.AddMember(context.Background(), r, member)
+
+		// Then
+		s.NoError(err)
+		s.hasMember(r, member)
+	})
+
+	s.Run("add a member to a room that already has the member", func() {
+		// Given
+		r, _ := s.service.CreateRoom(context.Background(), "test_room")
+		member := &MockMember{username: "user_1"}
+		_ = s.service.AddMember(context.Background(), r, member)
 
 		// When
-		err := s.room.addMember(context.Background(), member)
+		err := s.service.AddMember(context.Background(), r, member)
 
 		// Then
 		s.Error(err)
 	})
 }
 
-func (s *RoomSuite) TestRemoveMember() {
-	s.Run("remove a member", func() {
+func (s *ServiceSuite) TestRemoveMember() {
+	s.Run("remove a member from a room", func() {
 		// Given
+		r, _ := s.service.CreateRoom(context.Background(), "test_room")
 		member := &MockMember{username: "user_1"}
-
-		_ = s.room.addMember(context.Background(), member)
+		_ = s.service.AddMember(context.Background(), r, member)
 
 		// When
-		err := s.room.removeMember(context.Background(), member)
+		err := s.service.RemoveMember(context.Background(), r, member)
 
 		// Then
 		s.NoError(err)
-		s.NotContains(s.room.members, "user_1")
-	})
-
-	s.Run("remove non-existent member", func() {
-		// Given
-		member := &MockMember{username: "user_1"}
-
-		// When
-		err := s.room.removeMember(context.Background(), member)
-
-		// Then
-		s.NoError(err)
+		s.hasNotMember(r, member)
 	})
 }
 
-func (s *RoomSuite) TestSendMessage() {
-	s.Run("send message to room", func() {
+func (s *ServiceSuite) TestSendMessage() {
+	s.Run("send message to room members", func() {
 		// Given
+		r, _ := s.service.CreateRoom(context.Background(), "test_room")
 		member1 := &MockMember{username: "user_1"}
 		member2 := &MockMember{username: "user_2"}
-
-		_ = s.room.addMember(context.Background(), member1)
-		_ = s.room.addMember(context.Background(), member2)
+		_ = s.service.AddMember(context.Background(), r, member1)
+		_ = s.service.AddMember(context.Background(), r, member2)
 
 		// When
-		err := s.room.sendMessage(context.Background(), member1, "hello, world!")
+		err := s.service.SendMessage(context.Background(), r, member1, "hello, world!")
 
 		// Then
 		s.NoError(err)
 		s.Equal("test_room: @user_1: hello, world!", member2.lastNotification)
 	})
+}
 
-	s.Run("send message to empty room", func() {
-		// Given
-		member := &MockMember{username: "user_1"}
+func (s *ServiceSuite) hasMember(r *room.Room, m room.Member) bool {
+	s.T().Helper()
 
-		// When
-		err := s.room.sendMessage(context.Background(), member, "hello, world!")
+	return s.True(hasMember(r, m))
+}
 
-		// Then
-		s.NoError(err)
-	})
+func (s *ServiceSuite) hasNotMember(r *room.Room, m room.Member) bool {
+	s.T().Helper()
+
+	return s.False(hasMember(r, m))
 }
 
 type MockMember struct {
@@ -122,4 +122,22 @@ func (m *MockMember) Username() string {
 
 func (m *MockMember) Notify(event string) {
 	m.lastNotification = event
+}
+
+func hasMember(r *room.Room, m room.Member) bool {
+	has := false
+
+	members, err := r.Members()
+	if err != nil {
+		return false
+	}
+
+	for _, member := range members {
+		if member.Username() == m.Username() {
+			has = true
+			break
+		}
+	}
+
+	return has
 }

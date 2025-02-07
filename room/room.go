@@ -22,7 +22,34 @@ func (r *Room) Name() string {
 	return r.name
 }
 
-func (r *Room) addMember(ctx context.Context, m Member) error {
+func (r *Room) Members() ([]Member, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	members := make([]Member, 0, len(r.members))
+	for _, member := range r.members {
+		members = append(members, member)
+	}
+
+	return members, nil
+}
+
+type Service struct {
+}
+
+func NewService() *Service {
+	return &Service{}
+}
+
+func (s *Service) CreateRoom(ctx context.Context, name string) (*Room, error) {
+	return &Room{
+		name:    name,
+		mu:      sync.Mutex{},
+		members: make(map[string]Member),
+	}, nil
+}
+
+func (s *Service) AddMember(ctx context.Context, r *Room, m Member) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -36,7 +63,7 @@ func (r *Room) addMember(ctx context.Context, m Member) error {
 	return nil
 }
 
-func (r *Room) removeMember(ctx context.Context, m Member) error {
+func (s *Service) RemoveMember(ctx context.Context, r *Room, m Member) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -45,7 +72,7 @@ func (r *Room) removeMember(ctx context.Context, m Member) error {
 	return nil
 }
 
-func (r *Room) sendMessage(ctx context.Context, m Member, message string) error {
+func (s *Service) SendMessage(ctx context.Context, r *Room, m Member, message string) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
