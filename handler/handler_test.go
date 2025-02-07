@@ -1,4 +1,4 @@
-package handler
+package handler_test
 
 import (
 	"encoding/base64"
@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"practice-run/handler"
 	"practice-run/handler/mocks"
 	"strings"
 	"testing"
@@ -19,7 +20,7 @@ type Suite struct {
 	suite.Suite
 	ctrl *gomock.Controller
 	s    *mocks.MockChatService
-	h    *WebSocketHandler
+	h    *handler.WebSocketHandler
 }
 
 func TestSuite(t *testing.T) {
@@ -29,7 +30,7 @@ func TestSuite(t *testing.T) {
 func (s *Suite) SetupTest() {
 	s.ctrl = gomock.NewController(s.T())
 	s.s = mocks.NewMockChatService(s.ctrl)
-	s.h = NewWebSocketHandler(&websocket.Upgrader{}, s.s)
+	s.h = handler.NewWebSocketHandler(&websocket.Upgrader{}, s.s)
 }
 
 func (s *Suite) TearDownTest() {

@@ -1,8 +1,9 @@
-package chat
+package chat_test
 
 import (
 	"context"
 	"fmt"
+	"practice-run/chat"
 	"practice-run/chat/mocks"
 	"practice-run/room"
 	"testing"
@@ -13,7 +14,7 @@ import (
 
 type ChatSuite struct {
 	suite.Suite
-	service         *Service
+	service         *chat.Service
 	mockCtrl        *gomock.Controller
 	mockRoomService *mocks.MockRoomService
 }
@@ -25,7 +26,7 @@ func TestChatSuite(t *testing.T) {
 func (s *ChatSuite) SetupSubTest() {
 	s.mockCtrl = gomock.NewController(s.T())
 	s.mockRoomService = mocks.NewMockRoomService(s.mockCtrl)
-	s.service = NewService(s.mockRoomService)
+	s.service = chat.NewService(s.mockRoomService)
 }
 
 func (s *ChatSuite) TearDownSubTest() {
