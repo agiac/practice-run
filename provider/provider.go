@@ -8,12 +8,16 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-func RoomService() *room.Service {
-	return room.NewService()
+func RoomRepository() *room.Repository {
+	return room.NewRepository()
+}
+
+func RoomManager() *room.Manager {
+	return room.NewManager()
 }
 
 func ChatService() *chat.Service {
-	return chat.NewService(RoomService())
+	return chat.NewService(RoomRepository(), RoomManager())
 }
 
 func WebSocketUpgrader() *websocket.Upgrader {

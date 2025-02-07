@@ -1,8 +1,8 @@
-package room2_test
+package room_test
 
 import (
 	"context"
-	"practice-run/room2"
+	"practice-run/room"
 	"testing"
 
 	"github.com/stretchr/testify/suite"
@@ -10,8 +10,8 @@ import (
 
 type ManagerSuite struct {
 	suite.Suite
-	manager *room2.Manager
-	repo    *room2.Repository
+	manager *room.Manager
+	repo    *room.Repository
 }
 
 func TestManagerSuite(t *testing.T) {
@@ -19,8 +19,8 @@ func TestManagerSuite(t *testing.T) {
 }
 
 func (s *ManagerSuite) SetupSubTest() {
-	s.manager = room2.NewManager()
-	s.repo = room2.NewRepository()
+	s.manager = room.NewManager()
+	s.repo = room.NewRepository()
 }
 
 func (s *ManagerSuite) TestAddMember() {
@@ -28,15 +28,15 @@ func (s *ManagerSuite) TestAddMember() {
 		// Given
 		ctx := context.Background()
 		roomName := "test_room"
-		room, _ := s.repo.CreateRoom(ctx, roomName)
+		r, _ := s.repo.CreateRoom(ctx, roomName)
 		member := &MockMember{username: "user_1"}
 
 		// When
-		err := s.manager.AddMember(ctx, room, member)
+		err := s.manager.AddMember(ctx, r, member)
 
 		// Then
 		s.NoError(err)
-		members, _ := s.manager.GetMembers(ctx, room)
+		members, _ := s.manager.GetMembers(ctx, r)
 		s.Contains(members, member)
 	})
 
@@ -44,12 +44,12 @@ func (s *ManagerSuite) TestAddMember() {
 		// Given
 		ctx := context.Background()
 		roomName := "test_room"
-		room, _ := s.repo.CreateRoom(ctx, roomName)
+		r, _ := s.repo.CreateRoom(ctx, roomName)
 		member := &MockMember{username: "user_1"}
-		_ = s.manager.AddMember(ctx, room, member)
+		_ = s.manager.AddMember(ctx, r, member)
 
 		// When
-		err := s.manager.AddMember(ctx, room, member)
+		err := s.manager.AddMember(ctx, r, member)
 
 		// Then
 		s.Error(err)
@@ -59,19 +59,19 @@ func (s *ManagerSuite) TestAddMember() {
 		// Given
 		ctx := context.Background()
 		roomName := "test_room"
-		room, _ := s.repo.CreateRoom(ctx, roomName)
+		r, _ := s.repo.CreateRoom(ctx, roomName)
 		member1 := &MockMember{username: "user_1"}
-		_ = s.manager.AddMember(ctx, room, member1)
+		_ = s.manager.AddMember(ctx, r, member1)
 		member2 := &MockMember{username: "user_2"}
 
 		// When
-		_ = s.manager.AddMember(ctx, room, member2)
+		_ = s.manager.AddMember(ctx, r, member2)
 
 		// Then
-		s.Equal(room2.MemberJoinedEvent{
+		s.Equal(room.MemberJoinedEvent{
 			RoomName:   roomName,
 			MemberName: member2.username,
-		}, *member1.lastNotification.(*room2.MemberJoinedEvent))
+		}, *member1.lastNotification.(*room.MemberJoinedEvent))
 		s.Nil(member2.lastNotification)
 	})
 }
@@ -81,16 +81,16 @@ func (s *ManagerSuite) TestRemoveMember() {
 		// Given
 		ctx := context.Background()
 		roomName := "test_room"
-		room, _ := s.repo.CreateRoom(ctx, roomName)
+		r, _ := s.repo.CreateRoom(ctx, roomName)
 		member := &MockMember{username: "user_1"}
-		_ = s.manager.AddMember(ctx, room, member)
+		_ = s.manager.AddMember(ctx, r, member)
 
 		// When
-		err := s.manager.RemoveMember(ctx, room, member)
+		err := s.manager.RemoveMember(ctx, r, member)
 
 		// Then
 		s.NoError(err)
-		members, _ := s.manager.GetMembers(ctx, room)
+		members, _ := s.manager.GetMembers(ctx, r)
 		s.NotContains(members, member)
 	})
 
@@ -98,11 +98,11 @@ func (s *ManagerSuite) TestRemoveMember() {
 		// Given
 		ctx := context.Background()
 		roomName := "test_room"
-		room, _ := s.repo.CreateRoom(ctx, roomName)
+		r, _ := s.repo.CreateRoom(ctx, roomName)
 		member := &MockMember{username: "user_1"}
 
 		// When
-		err := s.manager.RemoveMember(ctx, room, member)
+		err := s.manager.RemoveMember(ctx, r, member)
 
 		// Then
 		s.NoError(err)
@@ -112,20 +112,20 @@ func (s *ManagerSuite) TestRemoveMember() {
 		// Given
 		ctx := context.Background()
 		roomName := "test_room"
-		room, _ := s.repo.CreateRoom(ctx, roomName)
+		r, _ := s.repo.CreateRoom(ctx, roomName)
 		member1 := &MockMember{username: "user_1"}
-		_ = s.manager.AddMember(ctx, room, member1)
+		_ = s.manager.AddMember(ctx, r, member1)
 		member2 := &MockMember{username: "user_2"}
-		_ = s.manager.AddMember(ctx, room, member2)
+		_ = s.manager.AddMember(ctx, r, member2)
 
 		// When
-		_ = s.manager.RemoveMember(ctx, room, member2)
+		_ = s.manager.RemoveMember(ctx, r, member2)
 
 		// Then
-		s.Equal(room2.MemberLeftEvent{
+		s.Equal(room.MemberLeftEvent{
 			RoomName:   roomName,
 			MemberName: member2.username,
-		}, *member1.lastNotification.(*room2.MemberLeftEvent))
+		}, *member1.lastNotification.(*room.MemberLeftEvent))
 		s.Nil(member2.lastNotification)
 	})
 }
@@ -135,13 +135,13 @@ func (s *ManagerSuite) TestSendMessage() {
 		// Given
 		ctx := context.Background()
 		roomName := "test_room"
-		room, _ := s.repo.CreateRoom(ctx, roomName)
+		r, _ := s.repo.CreateRoom(ctx, roomName)
 		member := &MockMember{username: "user_1"}
-		_ = s.manager.AddMember(ctx, room, member)
+		_ = s.manager.AddMember(ctx, r, member)
 		message := "hello, world!"
 
 		// When
-		err := s.manager.SendMessage(ctx, room, member, message)
+		err := s.manager.SendMessage(ctx, r, member, message)
 
 		// Then
 		s.NoError(err)
@@ -151,12 +151,12 @@ func (s *ManagerSuite) TestSendMessage() {
 		// Given
 		ctx := context.Background()
 		roomName := "test_room"
-		room, _ := s.repo.CreateRoom(ctx, roomName)
+		r, _ := s.repo.CreateRoom(ctx, roomName)
 		member := &MockMember{username: "user_1"}
 		message := "hello, world!"
 
 		// When
-		err := s.manager.SendMessage(ctx, room, member, message)
+		err := s.manager.SendMessage(ctx, r, member, message)
 
 		// Then
 		s.Error(err)
@@ -166,26 +166,26 @@ func (s *ManagerSuite) TestSendMessage() {
 		// Given
 		ctx := context.Background()
 		roomName := "test_room"
-		room, _ := s.repo.CreateRoom(ctx, roomName)
+		r, _ := s.repo.CreateRoom(ctx, roomName)
 		member1 := &MockMember{username: "user_1"}
-		_ = s.manager.AddMember(ctx, room, member1)
+		_ = s.manager.AddMember(ctx, r, member1)
 		member2 := &MockMember{username: "user_2"}
-		_ = s.manager.AddMember(ctx, room, member2)
+		_ = s.manager.AddMember(ctx, r, member2)
 		message := "hello, world!"
 
 		// When
-		_ = s.manager.SendMessage(ctx, room, member1, message)
+		_ = s.manager.SendMessage(ctx, r, member1, message)
 
 		// Then
-		s.Equal(room2.MessageReceivedEvent{
+		s.Equal(room.MessageReceivedEvent{
 			RoomName:   roomName,
 			SenderName: member1.username,
 			Message:    message,
-		}, *member2.lastNotification.(*room2.MessageReceivedEvent))
-		s.Equal(room2.MemberJoinedEvent{
+		}, *member2.lastNotification.(*room.MessageReceivedEvent))
+		s.Equal(room.MemberJoinedEvent{
 			RoomName:   roomName,
 			MemberName: member2.username,
-		}, *member1.lastNotification.(*room2.MemberJoinedEvent))
+		}, *member1.lastNotification.(*room.MemberJoinedEvent))
 	})
 }
 
@@ -194,12 +194,12 @@ func (s *ManagerSuite) TestGetMembers() {
 		// Given
 		ctx := context.Background()
 		roomName := "test_room"
-		room, _ := s.repo.CreateRoom(ctx, roomName)
+		r, _ := s.repo.CreateRoom(ctx, roomName)
 		member := &MockMember{username: "user_1"}
-		_ = s.manager.AddMember(ctx, room, member)
+		_ = s.manager.AddMember(ctx, r, member)
 
 		// When
-		members, err := s.manager.GetMembers(ctx, room)
+		members, err := s.manager.GetMembers(ctx, r)
 
 		// Then
 		s.NoError(err)
@@ -210,10 +210,10 @@ func (s *ManagerSuite) TestGetMembers() {
 		// Given
 		ctx := context.Background()
 		roomName := "test_room"
-		room, _ := s.repo.CreateRoom(ctx, roomName)
+		r, _ := s.repo.CreateRoom(ctx, roomName)
 
 		// When
-		members, err := s.manager.GetMembers(ctx, room)
+		members, err := s.manager.GetMembers(ctx, r)
 
 		// Then
 		s.NoError(err)
@@ -223,13 +223,13 @@ func (s *ManagerSuite) TestGetMembers() {
 
 type MockMember struct {
 	username         string
-	lastNotification room2.Event
+	lastNotification room.Event
 }
 
 func (m *MockMember) Username() string {
 	return m.username
 }
 
-func (m *MockMember) Notify(event room2.Event) {
+func (m *MockMember) Notify(event room.Event) {
 	m.lastNotification = event
 }

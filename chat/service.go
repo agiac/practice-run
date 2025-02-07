@@ -4,48 +4,47 @@ import (
 	"context"
 	"fmt"
 	"practice-run/room"
-	"sync"
 )
 
-//go:generate mockgen -destination mocks/mock_room_service.go -mock_names roomService=RoomService -package=mocks . roomService
-type roomService interface {
+//go:generate mockgen -destination mocks/mock_room_service.go -mock_names roomRepository=RoomRepository -package=mocks . roomRepository
+type roomRepository interface {
 	CreateRoom(ctx context.Context, roomName string) (*room.Room, error)
+	GetRoom(ctx context.Context, roomName string) (*room.Room, error)
+}
+
+//go:generate mockgen -destination mocks/mock_room_manager.go -mock_names roomManager=RoomManager -package=mocks . roomManager
+type roomManager interface {
 	AddMember(ctx context.Context, r *room.Room, m room.Member) error
 	RemoveMember(ctx context.Context, r *room.Room, m room.Member) error
 	SendMessage(ctx context.Context, r *room.Room, m room.Member, message string) error
 }
 
 type Service struct {
-	mu    sync.Mutex
-	rooms map[string]*room.Room
-
-	rs roomService
+	rs roomRepository
+	rm roomManager
 }
 
-func NewService(rs roomService) *Service {
+func NewService(rs roomRepository, rm roomManager) *Service {
 	return &Service{
-		mu:    sync.Mutex{},
-		rooms: make(map[string]*room.Room),
-		rs:    rs,
+		rs: rs,
+		rm: rm,
 	}
 }
 
 func (c *Service) AddMemberToRoom(ctx context.Context, roomName string, member room.Member) error {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+	r, err := c.rs.GetRoom(ctx, roomName)
+	if err != nil {
+		return fmt.Errorf("failed to get room: %w", err)
+	}
 
-	var err error
-	r, ok := c.rooms[roomName]
-	if !ok {
+	if r == nil {
 		r, err = c.rs.CreateRoom(ctx, roomName)
 		if err != nil {
 			return fmt.Errorf("failed to create room: %w", err)
 		}
-
-		c.rooms[roomName] = r
 	}
 
-	err = c.rs.AddMember(ctx, r, member)
+	err = c.rm.AddMember(ctx, r, member)
 	if err != nil {
 		return fmt.Errorf("failed to add member to room: %w", err)
 	}
@@ -54,15 +53,16 @@ func (c *Service) AddMemberToRoom(ctx context.Context, roomName string, member r
 }
 
 func (c *Service) RemoveMemberFromRoom(ctx context.Context, roomName string, member room.Member) error {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+	r, err := c.rs.GetRoom(ctx, roomName)
+	if err != nil {
+		return fmt.Errorf("failed to get room: %w", err)
+	}
 
-	r, ok := c.rooms[roomName]
-	if !ok {
+	if r == nil {
 		return nil
 	}
 
-	err := c.rs.RemoveMember(ctx, r, member)
+	err = c.rm.RemoveMember(ctx, r, member)
 	if err != nil {
 		return fmt.Errorf("failed to remove member from room: %w", err)
 	}
@@ -71,15 +71,16 @@ func (c *Service) RemoveMemberFromRoom(ctx context.Context, roomName string, mem
 }
 
 func (c *Service) SendMessageToRoom(ctx context.Context, roomName string, member room.Member, message string) error {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+	r, err := c.rs.GetRoom(ctx, roomName)
+	if err != nil {
+		return fmt.Errorf("failed to get room: %w", err)
+	}
 
-	r, ok := c.rooms[roomName]
-	if !ok {
+	if r == nil {
 		return fmt.Errorf("room not found")
 	}
 
-	err := c.rs.SendMessage(ctx, r, member, message)
+	err = c.rm.SendMessage(ctx, r, member, message)
 	if err != nil {
 		return fmt.Errorf("failed to send message to room: %w", err)
 	}

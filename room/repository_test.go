@@ -1,8 +1,8 @@
-package room2_test
+package room_test
 
 import (
 	"context"
-	"practice-run/room2"
+	"practice-run/room"
 	"testing"
 
 	"github.com/stretchr/testify/suite"
@@ -10,7 +10,7 @@ import (
 
 type RepositorySuite struct {
 	suite.Suite
-	repo *room2.Repository
+	repo *room.Repository
 }
 
 func TestRepositorySuite(t *testing.T) {
@@ -18,7 +18,7 @@ func TestRepositorySuite(t *testing.T) {
 }
 
 func (s *RepositorySuite) SetupTest() {
-	s.repo = room2.NewRepository()
+	s.repo = room.NewRepository()
 }
 
 func (s *RepositorySuite) TestCreateRoom() {

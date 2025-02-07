@@ -1,4 +1,4 @@
-package room2
+package room
 
 import (
 	"context"
