@@ -19,7 +19,7 @@ type Suite struct {
 	suite.Suite
 	ctrl *gomock.Controller
 	s    *mocks.MockChatService
-	h    *Handler
+	h    *WebSocketHandler
 }
 
 func TestSuite(t *testing.T) {
@@ -29,7 +29,7 @@ func TestSuite(t *testing.T) {
 func (s *Suite) SetupTest() {
 	s.ctrl = gomock.NewController(s.T())
 	s.s = mocks.NewMockChatService(s.ctrl)
-	s.h = NewHandler(&websocket.Upgrader{}, s.s)
+	s.h = NewWebSocketHandler(&websocket.Upgrader{}, s.s)
 }
 
 func (s *Suite) TearDownTest() {
@@ -56,8 +56,6 @@ func (s *Suite) TestAuthentication() {
 		server := httptest.NewServer(s.h)
 		defer server.Close()
 
-		s.s.EXPECT().GetUpdates(gomock.Any(), "user_1").Return(make(chan string), nil)
-
 		// When
 		conn, res, err := websocket.DefaultDialer.Dial(wsUrl(server), http.Header{
 			"Authorization": []string{fmt.Sprintf("Basic %s", base64.StdEncoding.EncodeToString([]byte("user_1:password")))},
@@ -82,8 +80,7 @@ func (s *Suite) TestJoinChannel() {
 		server := httptest.NewServer(s.h)
 		defer server.Close()
 
-		s.s.EXPECT().GetUpdates(gomock.Any(), "user_1").Return(make(chan string), nil)
-		s.s.EXPECT().JoinChannel(gomock.Any(), "user_1", "room_1").Return(nil)
+		s.s.EXPECT().JoinChannel(gomock.Any(), "room_1", gomock.Any()).Return(nil)
 
 		conn := s.createConnection(server, "user_1")
 
@@ -104,8 +101,7 @@ func (s *Suite) TestJoinChannel() {
 		server := httptest.NewServer(s.h)
 		defer server.Close()
 
-		s.s.EXPECT().GetUpdates(gomock.Any(), "user_1").Return(make(chan string), nil)
-		s.s.EXPECT().JoinChannel(gomock.Any(), "user_1", "room_1").Return(errors.New("some error"))
+		s.s.EXPECT().JoinChannel(gomock.Any(), "room_1", gomock.Any()).Return(errors.New("some error"))
 
 		conn := s.createConnection(server, "user_1")
 
@@ -128,9 +124,8 @@ func (s *Suite) TestLeaveChannel() {
 		server := httptest.NewServer(s.h)
 		defer server.Close()
 
-		s.s.EXPECT().GetUpdates(gomock.Any(), "user_1").Return(make(chan string), nil)
-		s.s.EXPECT().JoinChannel(gomock.Any(), "user_1", "room_1").Return(nil)
-		s.s.EXPECT().LeaveChannel(gomock.Any(), "user_1", "room_1").Return(nil)
+		s.s.EXPECT().JoinChannel(gomock.Any(), "room_1", gomock.Any()).Return(nil)
+		s.s.EXPECT().LeaveChannel(gomock.Any(), "room_1", gomock.Any()).Return(nil)
 
 		conn := s.createConnection(server, "user_1")
 
@@ -156,9 +151,8 @@ func (s *Suite) TestLeaveChannel() {
 		server := httptest.NewServer(s.h)
 		defer server.Close()
 
-		s.s.EXPECT().GetUpdates(gomock.Any(), "user_1").Return(make(chan string), nil)
-		s.s.EXPECT().JoinChannel(gomock.Any(), "user_1", "room_1").Return(nil)
-		s.s.EXPECT().LeaveChannel(gomock.Any(), "user_1", "room_1").Return(errors.New("some error"))
+		s.s.EXPECT().JoinChannel(gomock.Any(), "room_1", gomock.Any()).Return(nil)
+		s.s.EXPECT().LeaveChannel(gomock.Any(), "room_1", gomock.Any()).Return(errors.New("some error"))
 
 		conn := s.createConnection(server, "user_1")
 
@@ -185,9 +179,8 @@ func (s *Suite) TestSendMessage() {
 		server := httptest.NewServer(s.h)
 		defer server.Close()
 
-		s.s.EXPECT().GetUpdates(gomock.Any(), "user_1").Return(make(chan string), nil)
-		s.s.EXPECT().JoinChannel(gomock.Any(), "user_1", "room_1").Return(nil)
-		s.s.EXPECT().SendMessage(gomock.Any(), "user_1", "room_1", "hello, world!").Return(nil)
+		s.s.EXPECT().JoinChannel(gomock.Any(), "room_1", gomock.Any()).Return(nil)
+		s.s.EXPECT().SendMessage(gomock.Any(), "room_1", gomock.Any(), "hello, world!").Return(nil)
 
 		conn := s.createConnection(server, "user_1")
 
@@ -210,9 +203,8 @@ func (s *Suite) TestSendMessage() {
 		server := httptest.NewServer(s.h)
 		defer server.Close()
 
-		s.s.EXPECT().GetUpdates(gomock.Any(), "user_1").Return(make(chan string), nil)
-		s.s.EXPECT().JoinChannel(gomock.Any(), "user_1", "room_1").Return(nil)
-		s.s.EXPECT().SendMessage(gomock.Any(), "user_1", "room_1", "hello, world!").Return(errors.New("some error"))
+		s.s.EXPECT().JoinChannel(gomock.Any(), "room_1", gomock.Any()).Return(nil)
+		s.s.EXPECT().SendMessage(gomock.Any(), "room_1", gomock.Any(), "hello, world!").Return(errors.New("some error"))
 
 		conn := s.createConnection(server, "user_1")
 
@@ -229,30 +221,6 @@ func (s *Suite) TestSendMessage() {
 		s.Equal(`user_1 joined channel #room_1`, string(msg2))
 		s.Equal(`failed to send message: some error`, string(msg3))
 	})
-}
-
-func (s *Suite) TestReceiveUpdate() {
-	// Given
-	server := httptest.NewServer(s.h)
-	defer server.Close()
-
-	updates := make(chan string)
-	s.s.EXPECT().GetUpdates(gomock.Any(), "user_1").Return(updates, nil)
-
-	conn := s.createConnection(server, "user_1")
-
-	// When
-	updates <- "this is an update"
-	updates <- "this is another update"
-
-	_, msg1, _ := conn.ReadMessage()
-	_, msg2, _ := conn.ReadMessage()
-	_, msg3, _ := conn.ReadMessage()
-
-	// Then
-	s.Equal("welcome, user_1!", string(msg1))
-	s.Equal(`this is an update`, string(msg2))
-	s.Equal(`this is another update`, string(msg3))
 }
 
 func (s *Suite) createConnection(server *httptest.Server, userName string) *websocket.Conn {

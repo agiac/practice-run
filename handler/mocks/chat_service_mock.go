@@ -11,6 +11,7 @@ package mocks
 
 import (
 	context "context"
+	service "practice-run/service"
 	reflect "reflect"
 
 	gomock "go.uber.org/mock/gomock"
@@ -40,59 +41,44 @@ func (m *MockChatService) EXPECT() *MockChatServiceMockRecorder {
 	return m.recorder
 }
 
-// GetUpdates mocks base method.
-func (m *MockChatService) GetUpdates(ctx context.Context, username string) (<-chan string, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetUpdates", ctx, username)
-	ret0, _ := ret[0].(<-chan string)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetUpdates indicates an expected call of GetUpdates.
-func (mr *MockChatServiceMockRecorder) GetUpdates(ctx, username any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUpdates", reflect.TypeOf((*MockChatService)(nil).GetUpdates), ctx, username)
-}
-
 // JoinChannel mocks base method.
-func (m *MockChatService) JoinChannel(ctx context.Context, username, channelName string) error {
+func (m *MockChatService) JoinChannel(ctx context.Context, channelName string, member service.ChannelMember) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "JoinChannel", ctx, username, channelName)
+	ret := m.ctrl.Call(m, "JoinChannel", ctx, channelName, member)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // JoinChannel indicates an expected call of JoinChannel.
-func (mr *MockChatServiceMockRecorder) JoinChannel(ctx, username, channelName any) *gomock.Call {
+func (mr *MockChatServiceMockRecorder) JoinChannel(ctx, channelName, member any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "JoinChannel", reflect.TypeOf((*MockChatService)(nil).JoinChannel), ctx, username, channelName)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "JoinChannel", reflect.TypeOf((*MockChatService)(nil).JoinChannel), ctx, channelName, member)
 }
 
 // LeaveChannel mocks base method.
-func (m *MockChatService) LeaveChannel(ctx context.Context, username, channelName string) error {
+func (m *MockChatService) LeaveChannel(ctx context.Context, channelName string, member service.ChannelMember) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "LeaveChannel", ctx, username, channelName)
+	ret := m.ctrl.Call(m, "LeaveChannel", ctx, channelName, member)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // LeaveChannel indicates an expected call of LeaveChannel.
-func (mr *MockChatServiceMockRecorder) LeaveChannel(ctx, username, channelName any) *gomock.Call {
+func (mr *MockChatServiceMockRecorder) LeaveChannel(ctx, channelName, member any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LeaveChannel", reflect.TypeOf((*MockChatService)(nil).LeaveChannel), ctx, username, channelName)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LeaveChannel", reflect.TypeOf((*MockChatService)(nil).LeaveChannel), ctx, channelName, member)
 }
 
 // SendMessage mocks base method.
-func (m *MockChatService) SendMessage(ctx context.Context, username, channelName, message string) error {
+func (m *MockChatService) SendMessage(ctx context.Context, channelName string, member service.ChannelMember, message string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SendMessage", ctx, username, channelName, message)
+	ret := m.ctrl.Call(m, "SendMessage", ctx, channelName, member, message)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // SendMessage indicates an expected call of SendMessage.
-func (mr *MockChatServiceMockRecorder) SendMessage(ctx, username, channelName, message any) *gomock.Call {
+func (mr *MockChatServiceMockRecorder) SendMessage(ctx, channelName, member, message any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendMessage", reflect.TypeOf((*MockChatService)(nil).SendMessage), ctx, username, channelName, message)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendMessage", reflect.TypeOf((*MockChatService)(nil).SendMessage), ctx, channelName, member, message)
 }

@@ -6,64 +6,47 @@ import (
 	"sync"
 )
 
-type User struct {
-	Id      string
-	Updates chan string
+type ChannelMember interface {
+	Username() string
+	Notify(event string)
 }
 
 type Channel struct {
 	Id      string
-	Members map[string]*User
+	Members map[string]ChannelMember
 }
 
 type Chat struct {
-	mu          sync.Mutex
-	channels    map[string]*Channel
-	userUpdates map[string]chan string
+	mu       sync.Mutex
+	channels map[string]*Channel
 }
 
 func NewChat() *Chat {
 	return &Chat{
-		mu:          sync.Mutex{},
-		channels:    make(map[string]*Channel),
-		userUpdates: make(map[string]chan string),
+		mu:       sync.Mutex{},
+		channels: make(map[string]*Channel),
 	}
 }
 
-func (c *Chat) getOrCreateUserUpdates(username string) chan string {
-	userUpdates, ok := c.userUpdates[username]
-	if !ok {
-		userUpdates = make(chan string)
-		c.userUpdates[username] = userUpdates
-	}
-
-	return userUpdates
-}
-
-func (c *Chat) JoinChannel(ctx context.Context, username, channelName string) error {
+func (c *Chat) JoinChannel(ctx context.Context, channelName string, member ChannelMember) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-
-	userUpdates := c.getOrCreateUserUpdates(username)
 
 	channel, ok := c.channels[channelName]
 	if !ok {
 		channel = &Channel{
 			Id:      channelName,
-			Members: make(map[string]*User),
+			Members: make(map[string]ChannelMember),
 		}
 		c.channels[channelName] = channel
 	}
 
-	channel.Members[username] = &User{
-		Id:      username,
-		Updates: userUpdates,
-	}
+	channel.Members[member.Username()] = member
 
 	return nil
 }
 
-func (c *Chat) LeaveChannel(ctx context.Context, username, channelName string) error {
+func (c *Chat) LeaveChannel(ctx context.Context, channelName string, member ChannelMember) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -72,12 +55,12 @@ func (c *Chat) LeaveChannel(ctx context.Context, username, channelName string) e
 		return nil
 	}
 
-	delete(channel.Members, username)
+	delete(channel.Members, member.Username())
 
 	return nil
 }
 
-func (c *Chat) SendMessage(ctx context.Context, username, channelName, message string) error {
+func (c *Chat) SendMessage(ctx context.Context, channelName string, sender ChannelMember, message string) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -87,19 +70,12 @@ func (c *Chat) SendMessage(ctx context.Context, username, channelName, message s
 	}
 
 	for _, member := range channel.Members {
-		if member.Id == username {
+		if member.Username() == sender.Username() {
 			continue
 		}
 
-		member.Updates <- fmt.Sprintf("#%s: @%s: %s", channelName, username, message) // TODO: change to event
+		member.Notify(fmt.Sprintf("#%s: @%s: %s", channelName, sender.Username(), message)) // TODO: change to event
 	}
 
 	return nil
-}
-
-func (c *Chat) GetUpdates(ctx context.Context, username string) (<-chan string, error) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	return c.getOrCreateUserUpdates(username), nil
 }
