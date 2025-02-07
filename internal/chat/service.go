@@ -31,6 +31,15 @@ func NewService(rs roomRepository, rm roomManager) *Service {
 	}
 }
 
+func (c *Service) CreateRoom(ctx context.Context, roomName string) error {
+	_, err := c.rs.CreateRoom(ctx, roomName)
+	if err != nil {
+		return fmt.Errorf("failed to create room: %w", err)
+	}
+
+	return nil
+}
+
 func (c *Service) AddMemberToRoom(ctx context.Context, roomName string, member room.Member) error {
 	r, err := c.rs.GetRoom(ctx, roomName)
 	if err != nil {
@@ -38,10 +47,7 @@ func (c *Service) AddMemberToRoom(ctx context.Context, roomName string, member r
 	}
 
 	if r == nil {
-		r, err = c.rs.CreateRoom(ctx, roomName)
-		if err != nil {
-			return fmt.Errorf("failed to create room: %w", err)
-		}
+		return fmt.Errorf("room not found")
 	}
 
 	err = c.rm.AddMember(ctx, r, member)

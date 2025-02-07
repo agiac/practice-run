@@ -37,7 +37,14 @@ func (c *TestClient) ExpectMessage(expected string) {
 
 	c.s.T().Log(fmt.Sprintf("%s client received: %s", c.userName, string(msg)))
 
-	c.s.Equal(expected, string(msg))
+	c.s.Require().Equal(expected, string(msg))
+}
+
+func (c *TestClient) CreateRoom(roomName string) {
+	err := c.conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf(`/create #%s`, roomName)))
+	c.s.Require().NoError(err)
+
+	c.ExpectMessage(fmt.Sprintf("#%s created", roomName))
 }
 
 func (c *TestClient) JoinRoom(roomName string) {

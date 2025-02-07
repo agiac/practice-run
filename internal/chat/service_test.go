@@ -30,6 +30,29 @@ func (s *ServiceSuite) SetupTest() {
 	s.service = chat.NewService(s.mockRS, s.mockRM)
 }
 
+func (s *ServiceSuite) TestCreateRoom() {
+	s.Run("create room", func() {
+		ctx := context.Background()
+		roomName := "test_room"
+		room := &room2.Room{}
+
+		s.mockRS.EXPECT().CreateRoom(ctx, roomName).Return(room, nil)
+
+		err := s.service.CreateRoom(ctx, roomName)
+		s.NoError(err)
+	})
+
+	s.Run("fail to create room", func() {
+		ctx := context.Background()
+		roomName := "test_room"
+
+		s.mockRS.EXPECT().CreateRoom(ctx, roomName).Return(nil, errors.New("create room error"))
+
+		err := s.service.CreateRoom(ctx, roomName)
+		s.Error(err)
+	})
+}
+
 func (s *ServiceSuite) TestAddMemberToRoom() {
 	s.Run("add member to existing room", func() {
 		ctx := context.Background()
@@ -44,18 +67,15 @@ func (s *ServiceSuite) TestAddMemberToRoom() {
 		s.NoError(err)
 	})
 
-	s.Run("create and add member to new room", func() {
+	s.Run("create and add member to non existing room", func() {
 		ctx := context.Background()
 		roomName := "test_room"
 		member := &MockMember{username: "user_1"}
-		room := &room2.Room{}
 
 		s.mockRS.EXPECT().GetRoom(ctx, roomName).Return(nil, nil)
-		s.mockRS.EXPECT().CreateRoom(ctx, roomName).Return(room, nil)
-		s.mockRM.EXPECT().AddMember(ctx, room, member).Return(nil)
 
 		err := s.service.AddMemberToRoom(ctx, roomName, member)
-		s.NoError(err)
+		s.Error(err)
 	})
 
 	s.Run("fail to get room", func() {
@@ -64,18 +84,6 @@ func (s *ServiceSuite) TestAddMemberToRoom() {
 		member := &MockMember{username: "user_1"}
 
 		s.mockRS.EXPECT().GetRoom(ctx, roomName).Return(nil, errors.New("get room error"))
-
-		err := s.service.AddMemberToRoom(ctx, roomName, member)
-		s.Error(err)
-	})
-
-	s.Run("fail to create room", func() {
-		ctx := context.Background()
-		roomName := "test_room"
-		member := &MockMember{username: "user_1"}
-
-		s.mockRS.EXPECT().GetRoom(ctx, roomName).Return(nil, nil)
-		s.mockRS.EXPECT().CreateRoom(ctx, roomName).Return(nil, errors.New("create room error"))
 
 		err := s.service.AddMemberToRoom(ctx, roomName, member)
 		s.Error(err)

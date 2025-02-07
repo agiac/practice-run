@@ -69,6 +69,46 @@ func (s *Suite) TestAuthentication() {
 	})
 }
 
+func (s *Suite) TestCreateRoom() {
+	s.Run("create a room", func() {
+		// Given
+		server := httptest.NewServer(s.handler)
+		defer server.Close()
+
+		s.chatService.EXPECT().CreateRoom(gomock.Any(), "room_1").Return(nil)
+
+		conn := s.createConnection(server, "user_1")
+
+		// When
+		err := conn.WriteMessage(websocket.TextMessage, []byte(`/create #room_1`))
+		s.NoError(err)
+
+		_, msg, _ := conn.ReadMessage()
+
+		// Then
+		s.Equal(`#room_1 created`, string(msg))
+	})
+
+	s.Run("error", func() {
+		// Given
+		server := httptest.NewServer(s.handler)
+		defer server.Close()
+
+		s.chatService.EXPECT().CreateRoom(gomock.Any(), "room_1").Return(errors.New("some error"))
+
+		conn := s.createConnection(server, "user_1")
+
+		// When
+		err := conn.WriteMessage(websocket.TextMessage, []byte(`/create #room_1`))
+		s.NoError(err)
+
+		_, msg, _ := conn.ReadMessage()
+
+		// Then
+		s.Equal(`failed to create #room_1: some error`, string(msg))
+	})
+}
+
 func (s *Suite) TestJoinRoom() {
 	s.Run("join a room", func() {
 		// Given

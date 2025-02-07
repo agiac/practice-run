@@ -12,6 +12,7 @@ import (
 
 //go:generate mockgen -destination mocks/chat_service_mock.go -mock_names chatService=ChatService -package mocks . chatService
 type chatService interface {
+	CreateRoom(ctx context.Context, roomName string) error
 	AddMemberToRoom(ctx context.Context, roomName string, member room.Member) error
 	RemoveMemberFromRoom(ctx context.Context, roomName string, member room.Member) error
 	SendMessageToRoom(ctx context.Context, roomName string, member room.Member, message string) error
@@ -77,6 +78,8 @@ func (h *WebSocketHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func (h *WebSocketHandler) handleCommand(ctx context.Context, m *ChatMember, cmd interface{}) {
 	switch c := cmd.(type) {
+	case *CreateRoomCommand:
+		h.handleCreateRoom(ctx, m, c)
 	case *JoinRoomCommand:
 		h.handleJoinRoom(ctx, m, c)
 	case *LeaveRoomCommand:
@@ -87,6 +90,17 @@ func (h *WebSocketHandler) handleCommand(ctx context.Context, m *ChatMember, cmd
 		log.Printf("Error: unsupported command type: %T", cmd)
 		m.WriteMessage("server error")
 	}
+}
+
+func (h *WebSocketHandler) handleCreateRoom(ctx context.Context, m *ChatMember, cmd *CreateRoomCommand) {
+	err := h.chatService.CreateRoom(ctx, cmd.RoomName)
+	if err != nil {
+		log.Printf("Debug: %s failed to create room: %v", m.Username(), err)
+		m.WriteMessage(fmt.Sprintf("failed to create #%s: %v", cmd.RoomName, err))
+		return
+	}
+
+	m.WriteMessage(fmt.Sprintf("#%s created", cmd.RoomName))
 }
 
 func (h *WebSocketHandler) handleJoinRoom(ctx context.Context, m *ChatMember, cmd *JoinRoomCommand) {

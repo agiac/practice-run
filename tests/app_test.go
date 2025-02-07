@@ -35,6 +35,8 @@ func (s *Suite) TestApp() {
 	client2 := NewMiniClient(s, "user2")
 	client3 := NewMiniClient(s, "user3")
 
+	client1.CreateRoom("room1")
+
 	client1.JoinRoom("room1")
 
 	client2.JoinRoom("room1")

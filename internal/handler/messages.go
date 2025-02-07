@@ -5,6 +5,12 @@ import (
 	"regexp"
 )
 
+var CreateRoomCommandRegex = regexp.MustCompile(`^/(?P<command>create)\s+#(?P<roomName>\w+)$`)
+
+type CreateRoomCommand struct {
+	RoomName string
+}
+
 var JoinRoomCommandRegex = regexp.MustCompile(`^/(?P<command>join)\s+#(?P<roomName>\w+)$`)
 
 type JoinRoomCommand struct {
@@ -25,6 +31,10 @@ type SendMessageCommand struct {
 }
 
 func ParseMessage(msg string) (interface{}, error) {
+	if match := CreateRoomCommandRegex.FindStringSubmatch(msg); len(match) > 0 {
+		return &CreateRoomCommand{RoomName: match[2]}, nil
+	}
+
 	if match := JoinRoomCommandRegex.FindStringSubmatch(msg); len(match) > 0 {
 		return &JoinRoomCommand{RoomName: match[2]}, nil
 	}
