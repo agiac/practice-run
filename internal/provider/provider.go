@@ -21,7 +21,6 @@ func ChatService() *chat.Service {
 }
 
 func WebSocketUpgrader() *websocket.Upgrader {
-	// TODO: Set up
 	return &websocket.Upgrader{
 		ReadBufferSize:  1024,
 		WriteBufferSize: 1024,

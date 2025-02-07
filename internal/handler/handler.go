@@ -55,7 +55,7 @@ func (h *WebSocketHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	member := NewChatMember(username, conn)
 
 	for {
-		mt, msg, err := conn.ReadMessage()
+		mt, raw, err := conn.ReadMessage()
 		if err != nil {
 			log.Printf("Error: failed to read message, breaking connection: %v", err)
 			break
@@ -66,18 +66,18 @@ func (h *WebSocketHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 
-		cmd, err := ParseMessage(string(msg))
+		msg, err := ParseMessage(string(raw))
 		if err != nil {
 			member.WriteMessage(fmt.Sprintf("bad request: failed to parse message: %v", err))
 			continue
 		}
 
-		h.handleCommand(ctx, member, cmd)
+		h.handlerMessage(ctx, member, msg)
 	}
 }
 
-func (h *WebSocketHandler) handleCommand(ctx context.Context, m *ChatMember, cmd interface{}) {
-	switch c := cmd.(type) {
+func (h *WebSocketHandler) handlerMessage(ctx context.Context, m *ChatMember, msg interface{}) {
+	switch c := msg.(type) {
 	case *CreateRoomCommand:
 		h.handleCreateRoom(ctx, m, c)
 	case *JoinRoomCommand:
@@ -87,7 +87,7 @@ func (h *WebSocketHandler) handleCommand(ctx context.Context, m *ChatMember, cmd
 	case *SendMessageCommand:
 		h.handleSendMessage(ctx, m, c)
 	default:
-		log.Printf("Error: unsupported command type: %T", cmd)
+		log.Printf("Error: unsupported message type: %T", msg)
 		m.WriteMessage("server error")
 	}
 }
