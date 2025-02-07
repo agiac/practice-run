@@ -3,11 +3,17 @@ package main
 import (
 	"log"
 	"net/http"
+	"os"
 	"practice-run/internal/provider"
 )
 
 func main() {
-	if err := http.ListenAndServe(":8080", provider.WebSocketHandler()); err != nil {
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = ":8080"
+	}
+
+	if err := http.ListenAndServe(port, provider.WebSocketHandler()); err != nil {
 		log.Fatal("ListenAndServe: ", err)
 	}
 }

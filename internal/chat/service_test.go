@@ -125,7 +125,7 @@ func (s *ServiceSuite) TestRemoveMemberFromRoom() {
 		s.mockRS.EXPECT().GetRoom(ctx, roomName).Return(nil, nil)
 
 		err := s.service.RemoveMemberFromRoom(ctx, roomName, member)
-		s.NoError(err)
+		s.Error(err)
 	})
 
 	s.Run("fail to get room", func() {

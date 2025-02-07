@@ -105,7 +105,7 @@ func (s *ManagerSuite) TestRemoveMember() {
 		err := s.manager.RemoveMember(ctx, r, member)
 
 		// Then
-		s.NoError(err)
+		s.Error(err)
 	})
 
 	s.Run("broadcasts member left event", func() {

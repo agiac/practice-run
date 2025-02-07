@@ -65,7 +65,7 @@ func (c *Service) RemoveMemberFromRoom(ctx context.Context, roomName string, mem
 	}
 
 	if r == nil {
-		return nil
+		return fmt.Errorf("room not found")
 	}
 
 	err = c.rm.RemoveMember(ctx, r, member)

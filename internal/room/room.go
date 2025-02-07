@@ -58,6 +58,10 @@ func (r *Room) removeMember(ctx context.Context, member Member) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
+	if _, ok := r.members[member.Username()]; !ok {
+		return fmt.Errorf("not a room member")
+	}
+
 	delete(r.members, member.Username())
 
 	r.broadcastEvent(&MemberLeftEvent{
