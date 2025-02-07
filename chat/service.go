@@ -32,16 +32,16 @@ func (c *Service) JoinRoom(ctx context.Context, roomName string, member Member) 
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	channel, ok := c.rooms[roomName]
+	room, ok := c.rooms[roomName]
 	if !ok {
-		channel = &Room{
+		room = &Room{
 			Id:      roomName,
 			Members: make(map[string]Member),
 		}
-		c.rooms[roomName] = channel
+		c.rooms[roomName] = room
 	}
 
-	channel.Members[member.Username()] = member
+	room.Members[member.Username()] = member
 
 	return nil
 }
@@ -50,12 +50,12 @@ func (c *Service) LeaveChannel(ctx context.Context, channelName string, member M
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	channel, ok := c.rooms[channelName]
+	room, ok := c.rooms[channelName]
 	if !ok {
 		return nil
 	}
 
-	delete(channel.Members, member.Username())
+	delete(room.Members, member.Username())
 
 	return nil
 }
@@ -64,12 +64,12 @@ func (c *Service) SendMessage(ctx context.Context, channelName string, sender Me
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	channel, ok := c.rooms[channelName]
+	room, ok := c.rooms[channelName]
 	if !ok {
 		return nil
 	}
 
-	for _, member := range channel.Members {
+	for _, member := range room.Members {
 		if member.Username() == sender.Username() {
 			continue
 		}
