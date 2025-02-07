@@ -10,13 +10,16 @@ import (
 )
 
 func main() {
-	h := handler.NewHandler(
-		&websocket.Upgrader{
-			ReadBufferSize:  1024,
-			WriteBufferSize: 1024,
-		},
-		service.NewChat(),
-	)
+	// TODO: improve context and shutdown handling
+
+	u := &websocket.Upgrader{
+		ReadBufferSize:  1024,
+		WriteBufferSize: 1024,
+	}
+
+	s := service.NewChat()
+
+	h := handler.NewWebSocketHandler(u, s)
 
 	http.HandleFunc("/ws", h.ServeHTTP)
 
