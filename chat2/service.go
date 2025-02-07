@@ -6,19 +6,28 @@ import (
 	"practice-run/room2"
 )
 
-//go:generate mockgen -destination mocks/mock_room_service.go -mock_names roomService=RoomService -package=mocks . roomService
-type roomService interface {
+//go:generate mockgen -destination mocks/mock_room_service.go -mock_names roomRepository=RoomRepository -package=mocks . roomRepository
+type roomRepository interface {
 	CreateRoom(ctx context.Context, roomName string) (*room2.Room, error)
 	GetRoom(ctx context.Context, roomName string) (*room2.Room, error)
 }
 
-type Service struct {
-	rs roomService
+//go:generate mockgen -destination mocks/mock_room_manager.go -mock_names roomManager=RoomManager -package=mocks . roomManager
+type roomManager interface {
+	AddMember(ctx context.Context, r *room2.Room, m room2.Member) error
+	RemoveMember(ctx context.Context, r *room2.Room, m room2.Member) error
+	SendMessage(ctx context.Context, r *room2.Room, m room2.Member, message string) error
 }
 
-func NewService(rs roomService) *Service {
+type Service struct {
+	rs roomRepository
+	rm roomManager
+}
+
+func NewService(rs roomRepository, rm roomManager) *Service {
 	return &Service{
 		rs: rs,
+		rm: rm,
 	}
 }
 
@@ -35,7 +44,7 @@ func (c *Service) AddMemberToRoom(ctx context.Context, roomName string, member r
 		}
 	}
 
-	err = r.AddMember(ctx, member)
+	err = c.rm.AddMember(ctx, r, member)
 	if err != nil {
 		return fmt.Errorf("failed to add member to room: %w", err)
 	}
@@ -53,7 +62,7 @@ func (c *Service) RemoveMemberFromRoom(ctx context.Context, roomName string, mem
 		return nil
 	}
 
-	err = r.RemoveMember(ctx, member)
+	err = c.rm.RemoveMember(ctx, r, member)
 	if err != nil {
 		return fmt.Errorf("failed to remove member from room: %w", err)
 	}
@@ -71,7 +80,7 @@ func (c *Service) SendMessageToRoom(ctx context.Context, roomName string, member
 		return fmt.Errorf("room not found")
 	}
 
-	err = r.SendMessage(ctx, member, message)
+	err = c.rm.SendMessage(ctx, r, member, message)
 	if err != nil {
 		return fmt.Errorf("failed to send message to room: %w", err)
 	}

@@ -12,8 +12,12 @@ func RoomRepository() *room2.Repository {
 	return room2.NewRepository()
 }
 
+func RoomManager() *room2.Manager {
+	return room2.NewManager()
+}
+
 func ChatService() *chat2.Service {
-	return chat2.NewService(RoomRepository())
+	return chat2.NewService(RoomRepository(), RoomManager())
 }
 
 func WebSocketUpgrader() *websocket.Upgrader {

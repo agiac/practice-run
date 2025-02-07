@@ -2,6 +2,7 @@ package room2
 
 import (
 	"context"
+	"fmt"
 	"sync"
 )
 
@@ -23,10 +24,10 @@ func (r *Repository) CreateRoom(ctx context.Context, name string) (*Room, error)
 
 	room, ok := r.rooms[name]
 	if ok {
-		return room, nil
+		return nil, fmt.Errorf("room already exists")
 	}
 
-	room = &Room{name: name}
+	room = &Room{name: name, members: make(map[string]Member)}
 	r.rooms[name] = room
 
 	return room, nil

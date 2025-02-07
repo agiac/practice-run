@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"practice-run/handler"
-	"practice-run/handler/mocks"
+	"practice-run/handler2"
+	"practice-run/handler2/mocks"
 	"strings"
 	"testing"
 
@@ -20,7 +20,7 @@ type Suite struct {
 	suite.Suite
 	ctrl        *gomock.Controller
 	chatService *mocks.ChatService
-	handler     *handler.WebSocketHandler
+	handler     *handler2.WebSocketHandler
 }
 
 func TestSuite(t *testing.T) {
@@ -30,7 +30,7 @@ func TestSuite(t *testing.T) {
 func (s *Suite) SetupTest() {
 	s.ctrl = gomock.NewController(s.T())
 	s.chatService = mocks.NewChatService(s.ctrl)
-	s.handler = handler.NewWebSocketHandler(&websocket.Upgrader{}, s.chatService)
+	s.handler = handler2.NewWebSocketHandler(&websocket.Upgrader{}, s.chatService)
 }
 
 func (s *Suite) TearDownTest() {

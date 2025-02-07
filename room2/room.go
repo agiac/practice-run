@@ -23,7 +23,7 @@ func (r *Room) Name() string {
 	return r.name
 }
 
-func (r *Room) Members() ([]Member, error) {
+func (r *Room) getMembers(ctx context.Context) ([]Member, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -35,35 +35,40 @@ func (r *Room) Members() ([]Member, error) {
 	return members, nil
 }
 
-func (r *Room) AddMember(ctx context.Context, member Member) error {
+func (r *Room) addMember(ctx context.Context, member Member) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+
+	_, ok := r.members[member.Username()]
+	if ok {
+		return fmt.Errorf("member already exists")
+	}
 
 	r.members[member.Username()] = member
 
 	r.broadcastEvent(&MemberJoinedEvent{
-		RoomName:   r.name,
+		RoomName:   r.Name(),
 		MemberName: member.Username(),
 	}, member)
 
 	return nil
 }
 
-func (r *Room) RemoveMember(ctx context.Context, member Member) error {
+func (r *Room) removeMember(ctx context.Context, member Member) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
 	delete(r.members, member.Username())
 
 	r.broadcastEvent(&MemberLeftEvent{
-		RoomName:   r.name,
+		RoomName:   r.Name(),
 		MemberName: member.Username(),
 	}, member)
 
 	return nil
 }
 
-func (r *Room) SendMessage(ctx context.Context, member Member, message string) error {
+func (r *Room) sendMessage(ctx context.Context, member Member, message string) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -73,7 +78,7 @@ func (r *Room) SendMessage(ctx context.Context, member Member, message string) e
 	}
 
 	r.broadcastEvent(&MessageReceivedEvent{
-		RoomName:   r.name,
+		RoomName:   r.Name(),
 		SenderName: member.Username(),
 		Message:    message,
 	}, member)
