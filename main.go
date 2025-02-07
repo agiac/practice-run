@@ -3,15 +3,11 @@ package main
 import (
 	"log"
 	"net/http"
-	"practice-run/handler"
+	"practice-run/provider"
 )
 
 func main() {
-	// TODO: improve context and shutdown handling
-
-	err := http.ListenAndServe(":8080", handler.MakeHandler())
-
-	if err != nil {
+	if err := http.ListenAndServe(":8080", provider.WebSocketHandler()); err != nil {
 		log.Fatal("ListenAndServe: ", err)
 	}
 }
