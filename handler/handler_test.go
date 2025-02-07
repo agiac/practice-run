@@ -61,16 +61,10 @@ func (s *Suite) TestAuthentication() {
 			"Authorization": []string{fmt.Sprintf("Basic %s", base64.StdEncoding.EncodeToString([]byte("user_1:password")))},
 		})
 
-		s.Require().NoError(err)
-		s.Require().Equal(http.StatusSwitchingProtocols, res.StatusCode)
-		s.Require().NotNil(conn)
-
-		mt, msg, err := conn.ReadMessage()
-
 		// Then
 		s.NoError(err)
-		s.Equal(websocket.TextMessage, mt)
-		s.Equal("welcome, user_1!", string(msg))
+		s.Equal(http.StatusSwitchingProtocols, res.StatusCode)
+		s.NotNil(conn)
 	})
 }
 
@@ -88,12 +82,10 @@ func (s *Suite) TestJoinChannel() {
 		err := conn.WriteMessage(websocket.TextMessage, []byte(`/join #room_1`))
 		s.NoError(err)
 
-		_, msg1, _ := conn.ReadMessage()
-		_, msg2, _ := conn.ReadMessage()
+		_, msg, _ := conn.ReadMessage()
 
 		// Then
-		s.Equal("welcome, user_1!", string(msg1))
-		s.Equal(`user_1 joined channel #room_1`, string(msg2))
+		s.Equal(`you've joined #room_1`, string(msg))
 	})
 
 	s.Run("error", func() {
@@ -109,12 +101,10 @@ func (s *Suite) TestJoinChannel() {
 		err := conn.WriteMessage(websocket.TextMessage, []byte(`/join #room_1`))
 		s.NoError(err)
 
-		_, msg1, _ := conn.ReadMessage()
-		_, msg2, _ := conn.ReadMessage()
+		_, msg, _ := conn.ReadMessage()
 
 		// Then
-		s.Equal("welcome, user_1!", string(msg1))
-		s.Equal(`failed to join channel: some error`, string(msg2))
+		s.Equal(`failed to join #room_1: some error`, string(msg))
 	})
 }
 
@@ -138,12 +128,10 @@ func (s *Suite) TestLeaveChannel() {
 
 		_, msg1, _ := conn.ReadMessage()
 		_, msg2, _ := conn.ReadMessage()
-		_, msg3, _ := conn.ReadMessage()
 
 		// Then
-		s.Equal("welcome, user_1!", string(msg1))
-		s.Equal(`user_1 joined channel #room_1`, string(msg2))
-		s.Equal(`user_1 left channel #room_1`, string(msg3))
+		s.Equal(`you've joined #room_1`, string(msg1))
+		s.Equal(`you've left #room_1`, string(msg2))
 	})
 
 	s.Run("error", func() {
@@ -164,12 +152,10 @@ func (s *Suite) TestLeaveChannel() {
 
 		_, msg1, _ := conn.ReadMessage()
 		_, msg2, _ := conn.ReadMessage()
-		_, msg3, _ := conn.ReadMessage()
 
 		// Then
-		s.Equal("welcome, user_1!", string(msg1))
-		s.Equal(`user_1 joined channel #room_1`, string(msg2))
-		s.Equal(`failed to leave channel: some error`, string(msg3))
+		s.Equal(`you've joined #room_1`, string(msg1))
+		s.Equal(`failed to leave #room_1: some error`, string(msg2))
 	})
 }
 
@@ -190,12 +176,10 @@ func (s *Suite) TestSendMessage() {
 
 		_, msg1, _ := conn.ReadMessage()
 		_, msg2, _ := conn.ReadMessage()
-		_, msg3, _ := conn.ReadMessage()
 
 		// Then
-		s.Equal("welcome, user_1!", string(msg1))
-		s.Equal(`user_1 joined channel #room_1`, string(msg2))
-		s.Equal(`#room_1: @user_1: hello, world!`, string(msg3))
+		s.Equal(`you've joined #room_1`, string(msg1))
+		s.Equal(`#room_1: @user_1: hello, world!`, string(msg2))
 	})
 
 	s.Run("error", func() {
@@ -214,12 +198,10 @@ func (s *Suite) TestSendMessage() {
 
 		_, msg1, _ := conn.ReadMessage()
 		_, msg2, _ := conn.ReadMessage()
-		_, msg3, _ := conn.ReadMessage()
 
 		// Then
-		s.Equal("welcome, user_1!", string(msg1))
-		s.Equal(`user_1 joined channel #room_1`, string(msg2))
-		s.Equal(`failed to send message: some error`, string(msg3))
+		s.Equal(`you've joined #room_1`, string(msg1))
+		s.Equal(`failed to send message: some error`, string(msg2))
 	})
 }
 
