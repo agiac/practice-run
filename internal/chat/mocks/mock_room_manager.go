@@ -11,7 +11,7 @@ package mocks
 
 import (
 	context "context"
-	room "practice-run/room"
+	"practice-run/internal/room"
 	reflect "reflect"
 
 	gomock "go.uber.org/mock/gomock"

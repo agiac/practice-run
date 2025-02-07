@@ -2,7 +2,7 @@ package room_test
 
 import (
 	"context"
-	"practice-run/room"
+	room2 "practice-run/internal/room"
 	"testing"
 
 	"github.com/stretchr/testify/suite"
@@ -10,8 +10,8 @@ import (
 
 type ManagerSuite struct {
 	suite.Suite
-	manager *room.Manager
-	repo    *room.Repository
+	manager *room2.Manager
+	repo    *room2.Repository
 }
 
 func TestManagerSuite(t *testing.T) {
@@ -19,8 +19,8 @@ func TestManagerSuite(t *testing.T) {
 }
 
 func (s *ManagerSuite) SetupSubTest() {
-	s.manager = room.NewManager()
-	s.repo = room.NewRepository()
+	s.manager = room2.NewManager()
+	s.repo = room2.NewRepository()
 }
 
 func (s *ManagerSuite) TestAddMember() {
@@ -68,10 +68,10 @@ func (s *ManagerSuite) TestAddMember() {
 		_ = s.manager.AddMember(ctx, r, member2)
 
 		// Then
-		s.Equal(room.MemberJoinedEvent{
+		s.Equal(room2.MemberJoinedEvent{
 			RoomName:   roomName,
 			MemberName: member2.username,
-		}, *member1.lastNotification.(*room.MemberJoinedEvent))
+		}, *member1.lastNotification.(*room2.MemberJoinedEvent))
 		s.Nil(member2.lastNotification)
 	})
 }
@@ -122,10 +122,10 @@ func (s *ManagerSuite) TestRemoveMember() {
 		_ = s.manager.RemoveMember(ctx, r, member2)
 
 		// Then
-		s.Equal(room.MemberLeftEvent{
+		s.Equal(room2.MemberLeftEvent{
 			RoomName:   roomName,
 			MemberName: member2.username,
-		}, *member1.lastNotification.(*room.MemberLeftEvent))
+		}, *member1.lastNotification.(*room2.MemberLeftEvent))
 		s.Nil(member2.lastNotification)
 	})
 }
@@ -177,15 +177,15 @@ func (s *ManagerSuite) TestSendMessage() {
 		_ = s.manager.SendMessage(ctx, r, member1, message)
 
 		// Then
-		s.Equal(room.MessageReceivedEvent{
+		s.Equal(room2.MessageReceivedEvent{
 			RoomName:   roomName,
 			SenderName: member1.username,
 			Message:    message,
-		}, *member2.lastNotification.(*room.MessageReceivedEvent))
-		s.Equal(room.MemberJoinedEvent{
+		}, *member2.lastNotification.(*room2.MessageReceivedEvent))
+		s.Equal(room2.MemberJoinedEvent{
 			RoomName:   roomName,
 			MemberName: member2.username,
-		}, *member1.lastNotification.(*room.MemberJoinedEvent))
+		}, *member1.lastNotification.(*room2.MemberJoinedEvent))
 	})
 }
 
@@ -223,13 +223,13 @@ func (s *ManagerSuite) TestGetMembers() {
 
 type MockMember struct {
 	username         string
-	lastNotification room.Event
+	lastNotification room2.Event
 }
 
 func (m *MockMember) Username() string {
 	return m.username
 }
 
-func (m *MockMember) Notify(event room.Event) {
+func (m *MockMember) Notify(event room2.Event) {
 	m.lastNotification = event
 }

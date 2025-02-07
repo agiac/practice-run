@@ -3,7 +3,7 @@ package handler
 import (
 	"fmt"
 	"log"
-	"practice-run/room"
+	"practice-run/internal/room"
 	"sync"
 
 	"github.com/gorilla/websocket"

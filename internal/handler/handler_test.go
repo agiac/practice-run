@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"practice-run/handler"
-	"practice-run/handler/mocks"
+	"practice-run/internal/handler"
+	"practice-run/internal/handler/mocks"
 	"strings"
 	"testing"
 

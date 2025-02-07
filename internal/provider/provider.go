@@ -1,19 +1,19 @@
 package provider
 
 import (
-	"practice-run/chat"
-	"practice-run/handler"
-	"practice-run/room"
+	"practice-run/internal/chat"
+	"practice-run/internal/handler"
+	room2 "practice-run/internal/room"
 
 	"github.com/gorilla/websocket"
 )
 
-func RoomRepository() *room.Repository {
-	return room.NewRepository()
+func RoomRepository() *room2.Repository {
+	return room2.NewRepository()
 }
 
-func RoomManager() *room.Manager {
-	return room.NewManager()
+func RoomManager() *room2.Manager {
+	return room2.NewManager()
 }
 
 func ChatService() *chat.Service {

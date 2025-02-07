@@ -3,9 +3,9 @@ package chat_test
 import (
 	"context"
 	"errors"
-	"practice-run/chat"
-	"practice-run/chat/mocks"
-	"practice-run/room"
+	"practice-run/internal/chat"
+	mocks2 "practice-run/internal/chat/mocks"
+	room2 "practice-run/internal/room"
 	"testing"
 
 	"github.com/stretchr/testify/suite"
@@ -15,8 +15,8 @@ import (
 type ServiceSuite struct {
 	suite.Suite
 	service *chat.Service
-	mockRS  *mocks.RoomRepository
-	mockRM  *mocks.RoomManager
+	mockRS  *mocks2.RoomRepository
+	mockRM  *mocks2.RoomManager
 }
 
 func TestServiceSuite(t *testing.T) {
@@ -25,8 +25,8 @@ func TestServiceSuite(t *testing.T) {
 
 func (s *ServiceSuite) SetupTest() {
 	ctrl := gomock.NewController(s.T())
-	s.mockRS = mocks.NewRoomRepository(ctrl)
-	s.mockRM = mocks.NewRoomManager(ctrl)
+	s.mockRS = mocks2.NewRoomRepository(ctrl)
+	s.mockRM = mocks2.NewRoomManager(ctrl)
 	s.service = chat.NewService(s.mockRS, s.mockRM)
 }
 
@@ -35,7 +35,7 @@ func (s *ServiceSuite) TestAddMemberToRoom() {
 		ctx := context.Background()
 		roomName := "test_room"
 		member := &MockMember{username: "user_1"}
-		room := &room.Room{}
+		room := &room2.Room{}
 
 		s.mockRS.EXPECT().GetRoom(ctx, roomName).Return(room, nil)
 		s.mockRM.EXPECT().AddMember(ctx, room, member).Return(nil)
@@ -48,7 +48,7 @@ func (s *ServiceSuite) TestAddMemberToRoom() {
 		ctx := context.Background()
 		roomName := "test_room"
 		member := &MockMember{username: "user_1"}
-		room := &room.Room{}
+		room := &room2.Room{}
 
 		s.mockRS.EXPECT().GetRoom(ctx, roomName).Return(nil, nil)
 		s.mockRS.EXPECT().CreateRoom(ctx, roomName).Return(room, nil)
@@ -85,7 +85,7 @@ func (s *ServiceSuite) TestAddMemberToRoom() {
 		ctx := context.Background()
 		roomName := "test_room"
 		member := &MockMember{username: "user_1"}
-		room := &room.Room{}
+		room := &room2.Room{}
 
 		s.mockRS.EXPECT().GetRoom(ctx, roomName).Return(room, nil)
 		s.mockRM.EXPECT().AddMember(ctx, room, member).Return(errors.New("add member error"))
@@ -100,7 +100,7 @@ func (s *ServiceSuite) TestRemoveMemberFromRoom() {
 		ctx := context.Background()
 		roomName := "test_room"
 		member := &MockMember{username: "user_1"}
-		room := &room.Room{}
+		room := &room2.Room{}
 
 		s.mockRS.EXPECT().GetRoom(ctx, roomName).Return(room, nil)
 		s.mockRM.EXPECT().RemoveMember(ctx, room, member).Return(nil)
@@ -135,7 +135,7 @@ func (s *ServiceSuite) TestRemoveMemberFromRoom() {
 		ctx := context.Background()
 		roomName := "test_room"
 		member := &MockMember{username: "user_1"}
-		room := &room.Room{}
+		room := &room2.Room{}
 
 		s.mockRS.EXPECT().GetRoom(ctx, roomName).Return(room, nil)
 		s.mockRM.EXPECT().RemoveMember(ctx, room, member).Return(errors.New("remove member error"))
@@ -151,7 +151,7 @@ func (s *ServiceSuite) TestSendMessageToRoom() {
 		roomName := "test_room"
 		member := &MockMember{username: "user_1"}
 		message := "hello, world!"
-		room := &room.Room{}
+		room := &room2.Room{}
 
 		s.mockRS.EXPECT().GetRoom(ctx, roomName).Return(room, nil)
 		s.mockRM.EXPECT().SendMessage(ctx, room, member, message).Return(nil)
@@ -189,7 +189,7 @@ func (s *ServiceSuite) TestSendMessageToRoom() {
 		roomName := "test_room"
 		member := &MockMember{username: "user_1"}
 		message := "hello, world!"
-		room := &room.Room{}
+		room := &room2.Room{}
 
 		s.mockRS.EXPECT().GetRoom(ctx, roomName).Return(room, nil)
 		s.mockRM.EXPECT().SendMessage(ctx, room, member, message).Return(errors.New("send message error"))
@@ -201,13 +201,13 @@ func (s *ServiceSuite) TestSendMessageToRoom() {
 
 type MockMember struct {
 	username         string
-	lastNotification room.Event
+	lastNotification room2.Event
 }
 
 func (m *MockMember) Username() string {
 	return m.username
 }
 
-func (m *MockMember) Notify(event room.Event) {
+func (m *MockMember) Notify(event room2.Event) {
 	m.lastNotification = event
 }

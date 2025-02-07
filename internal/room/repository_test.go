@@ -2,7 +2,7 @@ package room_test
 
 import (
 	"context"
-	"practice-run/room"
+	"practice-run/internal/room"
 	"testing"
 
 	"github.com/stretchr/testify/suite"

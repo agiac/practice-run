@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"practice-run/room"
+	"practice-run/internal/room"
 
 	"github.com/gorilla/websocket"
 )

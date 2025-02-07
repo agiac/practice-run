@@ -3,7 +3,7 @@ package chat
 import (
 	"context"
 	"fmt"
-	"practice-run/room"
+	"practice-run/internal/room"
 )
 
 //go:generate mockgen -destination mocks/mock_room_service.go -mock_names roomRepository=RoomRepository -package=mocks . roomRepository

@@ -3,7 +3,7 @@ package main
 import (
 	"log"
 	"net/http"
-	"practice-run/provider"
+	"practice-run/internal/provider"
 )
 
 func main() {
