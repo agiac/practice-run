@@ -25,6 +25,9 @@ func (m *ChatMember) Username() string {
 }
 
 func (m *ChatMember) WriteMessage(message string) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
 	err := m.conn.WriteMessage(websocket.TextMessage, []byte(message))
 	if err != nil {
 		log.Printf("Error: failed to write message to member %s: %v", m.username, err)
