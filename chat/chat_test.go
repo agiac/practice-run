@@ -2,6 +2,7 @@ package chat
 
 import (
 	"context"
+	"fmt"
 	"practice-run/chat/mocks"
 	"practice-run/room"
 	"testing"
@@ -48,6 +49,20 @@ func (s *ChatSuite) TestAddMemberToRoom() {
 		s.NoError(err)
 	})
 
+	s.Run("add a member to a new room error", func() {
+		// Given
+		ctx := context.Background()
+		member := &MockMember{username: "user_1"}
+
+		s.mockRoomService.EXPECT().CreateRoom(ctx, "room_1").Return(nil, fmt.Errorf("failed to create room"))
+
+		// When
+		err := s.service.AddMemberToRoom(context.Background(), "room_1", member)
+
+		// Then
+		s.Error(err)
+	})
+
 	s.Run("add a member to an existing room", func() {
 		// Given
 		ctx := context.Background()
@@ -67,6 +82,26 @@ func (s *ChatSuite) TestAddMemberToRoom() {
 		// Then
 		s.NoError(err)
 	})
+
+	s.Run("add a member to an existing room error", func() {
+		// Given
+		ctx := context.Background()
+		r := &room.Room{}
+		member1 := &MockMember{username: "user_1"}
+		member2 := &MockMember{username: "user_2"}
+
+		s.mockRoomService.EXPECT().CreateRoom(ctx, "room_1").Return(r, nil)
+		s.mockRoomService.EXPECT().AddMember(ctx, r, member1).Return(nil)
+		s.mockRoomService.EXPECT().AddMember(ctx, r, member2).Return(fmt.Errorf("failed to add member"))
+
+		_ = s.service.AddMemberToRoom(context.Background(), "room_1", member1)
+
+		// When
+		err := s.service.AddMemberToRoom(context.Background(), "room_1", member2)
+
+		// Then
+		s.Error(err)
+	})
 }
 
 func (s *ChatSuite) TestRemoveMemberFromRoom() {
@@ -84,6 +119,37 @@ func (s *ChatSuite) TestRemoveMemberFromRoom() {
 
 		// When
 		err := s.service.RemoveMemberFromRoom(context.Background(), "room_1", member)
+
+		// Then
+		s.NoError(err)
+	})
+
+	s.Run("remove a member from a room error", func() {
+		// Given
+		ctx := context.Background()
+		r := &room.Room{}
+		member := &MockMember{username: "user_1"}
+
+		s.mockRoomService.EXPECT().CreateRoom(ctx, "room_1").Return(r, nil)
+		s.mockRoomService.EXPECT().AddMember(ctx, r, member).Return(nil)
+		s.mockRoomService.EXPECT().RemoveMember(ctx, r, member).Return(fmt.Errorf("failed to remove member"))
+
+		_ = s.service.AddMemberToRoom(context.Background(), "room_1", member)
+
+		// When
+		err := s.service.RemoveMemberFromRoom(context.Background(), "room_1", member)
+
+		// Then
+		s.Error(err)
+	})
+
+	s.Run("remove a member from a non-existent room", func() {
+		// Given
+		ctx := context.Background()
+		member := &MockMember{username: "user_1"}
+
+		// When
+		err := s.service.RemoveMemberFromRoom(ctx, "room_1", member)
 
 		// Then
 		s.NoError(err)
@@ -108,6 +174,25 @@ func (s *ChatSuite) TestSendMessageToRoom() {
 
 		// Then
 		s.NoError(err)
+	})
+
+	s.Run("send a message to a room error", func() {
+		// Given
+		ctx := context.Background()
+		r := &room.Room{}
+		member := &MockMember{username: "user_1"}
+
+		s.mockRoomService.EXPECT().CreateRoom(ctx, "room_1").Return(r, nil)
+		s.mockRoomService.EXPECT().AddMember(ctx, r, member).Return(nil)
+		s.mockRoomService.EXPECT().SendMessage(ctx, r, member, "hello").Return(fmt.Errorf("failed to send message"))
+
+		_ = s.service.AddMemberToRoom(context.Background(), "room_1", member)
+
+		// When
+		err := s.service.SendMessageToRoom(ctx, "room_1", member, "hello")
+
+		// Then
+		s.Error(err)
 	})
 
 	s.Run("send a message to a non-existent room", func() {
