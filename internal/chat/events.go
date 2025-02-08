@@ -1,4 +1,4 @@
-package room
+package chat
 
 type Event interface {
 	Name() string

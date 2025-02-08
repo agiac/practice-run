@@ -3,54 +3,62 @@ package chat
 import (
 	"context"
 	"fmt"
-	"practice-run/internal/room"
+	"sync"
 )
 
-//go:generate mockgen -destination mocks/mock_room_service.go -mock_names roomRepository=RoomRepository -package=mocks . roomRepository
-type roomRepository interface {
-	CreateRoom(ctx context.Context, roomName string) (*room.Room, error)
-	GetRoom(ctx context.Context, roomName string) (*room.Room, error)
-}
-
-//go:generate mockgen -destination mocks/mock_room_manager.go -mock_names roomManager=RoomManager -package=mocks . roomManager
-type roomManager interface {
-	AddMember(ctx context.Context, r *room.Room, m room.Member) error
-	RemoveMember(ctx context.Context, r *room.Room, m room.Member) error
-	SendMessage(ctx context.Context, r *room.Room, m room.Member, message string) error
-}
-
 type Service struct {
-	rs roomRepository
-	rm roomManager
+	mtx   sync.Mutex
+	rooms map[string]*Room
 }
 
-func NewService(rs roomRepository, rm roomManager) *Service {
+func NewService() *Service {
 	return &Service{
-		rs: rs,
-		rm: rm,
+		mtx:   sync.Mutex{},
+		rooms: make(map[string]*Room),
 	}
 }
 
-func (c *Service) CreateRoom(ctx context.Context, roomName string) error {
-	_, err := c.rs.CreateRoom(ctx, roomName)
-	if err != nil {
-		return fmt.Errorf("failed to create room: %w", err)
+func (r *Service) CreateRoom(ctx context.Context, name string) (*Room, error) {
+	r.mtx.Lock()
+	defer r.mtx.Unlock()
+
+	room, ok := r.rooms[name]
+	if ok {
+		return nil, fmt.Errorf("room already exists")
 	}
 
-	return nil
+	room = &Room{
+		name:    name,
+		members: make(map[string]Member),
+	}
+
+	r.rooms[name] = room
+
+	return room, nil
 }
 
-func (c *Service) AddMemberToRoom(ctx context.Context, roomName string, member room.Member) error {
-	r, err := c.rs.GetRoom(ctx, roomName)
-	if err != nil {
-		return fmt.Errorf("failed to get room: %w", err)
+func (r *Service) GetRoom(ctx context.Context, roomName string) (*Room, error) {
+	r.mtx.Lock()
+	defer r.mtx.Unlock()
+
+	room, ok := r.rooms[roomName]
+	if !ok {
+		return nil, nil
 	}
 
-	if r == nil {
+	return room, nil
+}
+
+func (r *Service) AddMember(ctx context.Context, roomName string, member Member) error {
+	r.mtx.Lock()
+	defer r.mtx.Unlock()
+
+	room, ok := r.rooms[roomName]
+	if !ok {
 		return fmt.Errorf("room not found")
 	}
 
-	err = c.rm.AddMember(ctx, r, member)
+	err := room.addMember(ctx, member)
 	if err != nil {
 		return fmt.Errorf("failed to add member to room: %w", err)
 	}
@@ -58,17 +66,16 @@ func (c *Service) AddMemberToRoom(ctx context.Context, roomName string, member r
 	return nil
 }
 
-func (c *Service) RemoveMemberFromRoom(ctx context.Context, roomName string, member room.Member) error {
-	r, err := c.rs.GetRoom(ctx, roomName)
-	if err != nil {
-		return fmt.Errorf("failed to get room: %w", err)
-	}
+func (r *Service) RemoveMember(ctx context.Context, roomName string, member Member) error {
+	r.mtx.Lock()
+	defer r.mtx.Unlock()
 
-	if r == nil {
+	room, ok := r.rooms[roomName]
+	if !ok {
 		return fmt.Errorf("room not found")
 	}
 
-	err = c.rm.RemoveMember(ctx, r, member)
+	err := room.removeMember(ctx, member)
 	if err != nil {
 		return fmt.Errorf("failed to remove member from room: %w", err)
 	}
@@ -76,17 +83,33 @@ func (c *Service) RemoveMemberFromRoom(ctx context.Context, roomName string, mem
 	return nil
 }
 
-func (c *Service) SendMessageToRoom(ctx context.Context, roomName string, member room.Member, message string) error {
-	r, err := c.rs.GetRoom(ctx, roomName)
-	if err != nil {
-		return fmt.Errorf("failed to get room: %w", err)
+func (r *Service) GetMembers(ctx context.Context, roomName string) ([]Member, error) {
+	r.mtx.Lock()
+	defer r.mtx.Unlock()
+
+	room, ok := r.rooms[roomName]
+	if !ok {
+		return nil, fmt.Errorf("room not found")
 	}
 
-	if r == nil {
+	members, err := room.getMembers(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get members: %w", err)
+	}
+
+	return members, nil
+}
+
+func (r *Service) SendMessage(ctx context.Context, roomName string, member Member, message string) error {
+	r.mtx.Lock()
+	defer r.mtx.Unlock()
+
+	room, ok := r.rooms[roomName]
+	if !ok {
 		return fmt.Errorf("room not found")
 	}
 
-	err = c.rm.SendMessage(ctx, r, member, message)
+	err := room.sendMessage(ctx, member, message)
 	if err != nil {
 		return fmt.Errorf("failed to send message to room: %w", err)
 	}

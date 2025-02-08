@@ -11,7 +11,7 @@ package mocks
 
 import (
 	context "context"
-	room "practice-run/internal/room"
+	"practice-run/internal/chat"
 	reflect "reflect"
 
 	gomock "go.uber.org/mock/gomock"
@@ -41,26 +41,27 @@ func (m *ChatService) EXPECT() *ChatServiceMockRecorder {
 	return m.recorder
 }
 
-// AddMemberToRoom mocks base method.
-func (m *ChatService) AddMemberToRoom(ctx context.Context, roomName string, member room.Member) error {
+// AddMember mocks base method.
+func (m *ChatService) AddMember(ctx context.Context, roomName string, member chat.Member) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "AddMemberToRoom", ctx, roomName, member)
+	ret := m.ctrl.Call(m, "AddMember", ctx, roomName, member)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// AddMemberToRoom indicates an expected call of AddMemberToRoom.
-func (mr *ChatServiceMockRecorder) AddMemberToRoom(ctx, roomName, member any) *gomock.Call {
+// AddMember indicates an expected call of AddMember.
+func (mr *ChatServiceMockRecorder) AddMember(ctx, roomName, member any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddMemberToRoom", reflect.TypeOf((*ChatService)(nil).AddMemberToRoom), ctx, roomName, member)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddMember", reflect.TypeOf((*ChatService)(nil).AddMember), ctx, roomName, member)
 }
 
 // CreateRoom mocks base method.
-func (m *ChatService) CreateRoom(ctx context.Context, roomName string) error {
+func (m *ChatService) CreateRoom(ctx context.Context, roomName string) (*chat.Room, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateRoom", ctx, roomName)
-	ret0, _ := ret[0].(error)
-	return ret0
+	ret0, _ := ret[0].(*chat.Room)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // CreateRoom indicates an expected call of CreateRoom.
@@ -69,30 +70,30 @@ func (mr *ChatServiceMockRecorder) CreateRoom(ctx, roomName any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateRoom", reflect.TypeOf((*ChatService)(nil).CreateRoom), ctx, roomName)
 }
 
-// RemoveMemberFromRoom mocks base method.
-func (m *ChatService) RemoveMemberFromRoom(ctx context.Context, roomName string, member room.Member) error {
+// RemoveMember mocks base method.
+func (m *ChatService) RemoveMember(ctx context.Context, roomName string, member chat.Member) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RemoveMemberFromRoom", ctx, roomName, member)
+	ret := m.ctrl.Call(m, "RemoveMember", ctx, roomName, member)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// RemoveMemberFromRoom indicates an expected call of RemoveMemberFromRoom.
-func (mr *ChatServiceMockRecorder) RemoveMemberFromRoom(ctx, roomName, member any) *gomock.Call {
+// RemoveMember indicates an expected call of RemoveMember.
+func (mr *ChatServiceMockRecorder) RemoveMember(ctx, roomName, member any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveMemberFromRoom", reflect.TypeOf((*ChatService)(nil).RemoveMemberFromRoom), ctx, roomName, member)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveMember", reflect.TypeOf((*ChatService)(nil).RemoveMember), ctx, roomName, member)
 }
 
-// SendMessageToRoom mocks base method.
-func (m *ChatService) SendMessageToRoom(ctx context.Context, roomName string, member room.Member, message string) error {
+// SendMessage mocks base method.
+func (m *ChatService) SendMessage(ctx context.Context, roomName string, member chat.Member, message string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SendMessageToRoom", ctx, roomName, member, message)
+	ret := m.ctrl.Call(m, "SendMessage", ctx, roomName, member, message)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// SendMessageToRoom indicates an expected call of SendMessageToRoom.
-func (mr *ChatServiceMockRecorder) SendMessageToRoom(ctx, roomName, member, message any) *gomock.Call {
+// SendMessage indicates an expected call of SendMessage.
+func (mr *ChatServiceMockRecorder) SendMessage(ctx, roomName, member, message any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendMessageToRoom", reflect.TypeOf((*ChatService)(nil).SendMessageToRoom), ctx, roomName, member, message)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendMessage", reflect.TypeOf((*ChatService)(nil).SendMessage), ctx, roomName, member, message)
 }

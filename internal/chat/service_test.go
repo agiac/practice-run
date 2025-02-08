@@ -2,220 +2,328 @@ package chat_test
 
 import (
 	"context"
-	"errors"
 	"practice-run/internal/chat"
-	mocks2 "practice-run/internal/chat/mocks"
-	room2 "practice-run/internal/room"
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/suite"
-	"go.uber.org/mock/gomock"
 )
 
-type ServiceSuite struct {
+type Suite struct {
 	suite.Suite
-	service *chat.Service
-	mockRS  *mocks2.RoomRepository
-	mockRM  *mocks2.RoomManager
+	svc *chat.Service
 }
 
-func TestServiceSuite(t *testing.T) {
-	suite.Run(t, new(ServiceSuite))
+func TestSuite(t *testing.T) {
+	suite.Run(t, new(Suite))
 }
 
-func (s *ServiceSuite) SetupTest() {
-	ctrl := gomock.NewController(s.T())
-	s.mockRS = mocks2.NewRoomRepository(ctrl)
-	s.mockRM = mocks2.NewRoomManager(ctrl)
-	s.service = chat.NewService(s.mockRS, s.mockRM)
+func (s *Suite) SetupSubTest() {
+	s.svc = chat.NewService()
 }
 
-func (s *ServiceSuite) TestCreateRoom() {
-	s.Run("create room", func() {
+func (s *Suite) TestCreateRoom() {
+	s.Run("ok", func() {
+		// Given
 		ctx := context.Background()
 		roomName := "test_room"
-		room := &room2.Room{}
 
-		s.mockRS.EXPECT().CreateRoom(ctx, roomName).Return(room, nil)
+		// When
+		r, err := s.svc.CreateRoom(ctx, roomName)
 
-		err := s.service.CreateRoom(ctx, roomName)
+		// Then
+		s.NoError(err)
+		s.NotNil(r)
+		s.Equal(roomName, r.Name())
+	})
+
+	s.Run("room already exists", func() {
+		// Given
+		ctx := context.Background()
+		roomName := "test_room"
+		_, _ = s.svc.CreateRoom(ctx, roomName)
+
+		// When
+		r, err := s.svc.CreateRoom(ctx, roomName)
+
+		// Then
+		s.Error(err)
+		s.Nil(r)
+	})
+
+	s.Run("no data races", func() {
+		// Given
+		ctx := context.Background()
+		roomName := "test_room"
+
+		// When
+		wg := sync.WaitGroup{}
+		for range 1000 {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				_, _ = s.svc.CreateRoom(ctx, roomName)
+			}()
+		}
+		wg.Wait()
+
+		// Then
+		// Checked by running the test with -race flag
+	})
+}
+
+func (s *Suite) TestGetRoom() {
+	s.Run("ok", func() {
+		// Given
+		ctx := context.Background()
+		roomName := "test_room"
+		_, _ = s.svc.CreateRoom(ctx, roomName)
+
+		// When
+		r, err := s.svc.GetRoom(ctx, roomName)
+
+		// Then
+		s.NoError(err)
+		s.NotNil(r)
+		s.Equal(roomName, r.Name())
+	})
+
+	s.Run("room not found", func() {
+		// Given
+		ctx := context.Background()
+		roomName := "non_existent_room"
+
+		// When
+		r, err := s.svc.GetRoom(ctx, roomName)
+
+		// Then
+		s.NoError(err)
+		s.Nil(r)
+	})
+}
+
+func (s *Suite) TestAddMember() {
+	s.Run("ok", func() {
+		// Given
+		ctx := context.Background()
+		roomName := "test_room"
+		_, _ = s.svc.CreateRoom(ctx, roomName)
+		member := &MockMember{username: "user_1"}
+
+		// When
+		err := s.svc.AddMember(ctx, roomName, member)
+
+		// Then
+		s.NoError(err)
+		members, _ := s.svc.GetMembers(ctx, roomName)
+		s.Contains(members, member)
+	})
+
+	s.Run("room not found", func() {
+		// Given
+		ctx := context.Background()
+		roomName := "non_existent_room"
+		member := &MockMember{username: "user_1"}
+
+		// When
+		err := s.svc.AddMember(ctx, roomName, member)
+
+		// Then
+		s.Error(err)
+	})
+
+	s.Run("no data races", func() {
+		// Given
+		ctx := context.Background()
+		roomName := "test_room"
+		_, _ = s.svc.CreateRoom(ctx, roomName)
+		member := &MockMember{username: "user_1"}
+
+		// When
+		wg := sync.WaitGroup{}
+		for range 1000 {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				_ = s.svc.AddMember(ctx, roomName, member)
+			}()
+		}
+		wg.Wait()
+
+		// Then
+		// Checked by running the test with -race flag
+	})
+}
+
+func (s *Suite) TestRemoveMember() {
+	s.Run("ok", func() {
+		// Given
+		ctx := context.Background()
+		roomName := "test_room"
+		_, _ = s.svc.CreateRoom(ctx, roomName)
+		member := &MockMember{username: "user_1"}
+		_ = s.svc.AddMember(ctx, roomName, member)
+
+		// When
+		err := s.svc.RemoveMember(ctx, roomName, member)
+
+		// Then
+		s.NoError(err)
+		members, _ := s.svc.GetMembers(ctx, roomName)
+		s.NotContains(members, member)
+	})
+
+	s.Run("room not found", func() {
+		// Given
+		ctx := context.Background()
+		roomName := "non_existent_room"
+		member := &MockMember{username: "user_1"}
+
+		// When
+		err := s.svc.RemoveMember(ctx, roomName, member)
+
+		// Then
+		s.Error(err)
+	})
+
+	s.Run("no data races", func() {
+		// Given
+		ctx := context.Background()
+		roomName := "test_room"
+		_, _ = s.svc.CreateRoom(ctx, roomName)
+		member := &MockMember{username: "user_1"}
+		_ = s.svc.AddMember(ctx, roomName, member)
+
+		// When
+		wg := sync.WaitGroup{}
+		for range 1000 {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				_ = s.svc.RemoveMember(ctx, roomName, member)
+			}()
+		}
+		wg.Wait()
+
+		// Then
+		// Checked by running the test with -race flag
+	})
+}
+
+func (s *Suite) TestGetMembers() {
+	s.Run("ok", func() {
+		// Given
+		ctx := context.Background()
+		roomName := "test_room"
+		_, _ = s.svc.CreateRoom(ctx, roomName)
+		member1 := &MockMember{username: "user_1"}
+		member2 := &MockMember{username: "user_2"}
+		_ = s.svc.AddMember(ctx, roomName, member1)
+		_ = s.svc.AddMember(ctx, roomName, member2)
+
+		// When
+		members, err := s.svc.GetMembers(ctx, roomName)
+
+		// Then
+		s.NoError(err)
+		s.Contains(members, member1)
+		s.Contains(members, member2)
+	})
+
+	s.Run("room not found", func() {
+		// Given
+		ctx := context.Background()
+		roomName := "non_existent_room"
+
+		// When
+		members, err := s.svc.GetMembers(ctx, roomName)
+
+		// Then
+		s.Error(err)
+		s.Nil(members)
+	})
+}
+
+func (s *Suite) TestSendMessage() {
+	s.Run("ok", func() {
+		// Given
+		ctx := context.Background()
+		roomName := "test_room"
+		_, _ = s.svc.CreateRoom(ctx, roomName)
+		member := &MockMember{username: "user_1"}
+		_ = s.svc.AddMember(ctx, roomName, member)
+		message := "hello, world!"
+
+		// When
+		err := s.svc.SendMessage(ctx, roomName, member, message)
+
+		// Then
 		s.NoError(err)
 	})
 
-	s.Run("fail to create room", func() {
+	s.Run("room not found", func() {
+		// Given
 		ctx := context.Background()
-		roomName := "test_room"
-
-		s.mockRS.EXPECT().CreateRoom(ctx, roomName).Return(nil, errors.New("create room error"))
-
-		err := s.service.CreateRoom(ctx, roomName)
-		s.Error(err)
-	})
-}
-
-func (s *ServiceSuite) TestAddMemberToRoom() {
-	s.Run("add member to existing room", func() {
-		ctx := context.Background()
-		roomName := "test_room"
-		member := &MockMember{username: "user_1"}
-		room := &room2.Room{}
-
-		s.mockRS.EXPECT().GetRoom(ctx, roomName).Return(room, nil)
-		s.mockRM.EXPECT().AddMember(ctx, room, member).Return(nil)
-
-		err := s.service.AddMemberToRoom(ctx, roomName, member)
-		s.NoError(err)
-	})
-
-	s.Run("create and add member to non existing room", func() {
-		ctx := context.Background()
-		roomName := "test_room"
-		member := &MockMember{username: "user_1"}
-
-		s.mockRS.EXPECT().GetRoom(ctx, roomName).Return(nil, nil)
-
-		err := s.service.AddMemberToRoom(ctx, roomName, member)
-		s.Error(err)
-	})
-
-	s.Run("fail to get room", func() {
-		ctx := context.Background()
-		roomName := "test_room"
-		member := &MockMember{username: "user_1"}
-
-		s.mockRS.EXPECT().GetRoom(ctx, roomName).Return(nil, errors.New("get room error"))
-
-		err := s.service.AddMemberToRoom(ctx, roomName, member)
-		s.Error(err)
-	})
-
-	s.Run("fail to add member to room", func() {
-		ctx := context.Background()
-		roomName := "test_room"
-		member := &MockMember{username: "user_1"}
-		room := &room2.Room{}
-
-		s.mockRS.EXPECT().GetRoom(ctx, roomName).Return(room, nil)
-		s.mockRM.EXPECT().AddMember(ctx, room, member).Return(errors.New("add member error"))
-
-		err := s.service.AddMemberToRoom(ctx, roomName, member)
-		s.Error(err)
-	})
-}
-
-func (s *ServiceSuite) TestRemoveMemberFromRoom() {
-	s.Run("remove member from existing room", func() {
-		ctx := context.Background()
-		roomName := "test_room"
-		member := &MockMember{username: "user_1"}
-		room := &room2.Room{}
-
-		s.mockRS.EXPECT().GetRoom(ctx, roomName).Return(room, nil)
-		s.mockRM.EXPECT().RemoveMember(ctx, room, member).Return(nil)
-
-		err := s.service.RemoveMemberFromRoom(ctx, roomName, member)
-		s.NoError(err)
-	})
-
-	s.Run("remove member from non-existing room", func() {
-		ctx := context.Background()
-		roomName := "test_room"
-		member := &MockMember{username: "user_1"}
-
-		s.mockRS.EXPECT().GetRoom(ctx, roomName).Return(nil, nil)
-
-		err := s.service.RemoveMemberFromRoom(ctx, roomName, member)
-		s.Error(err)
-	})
-
-	s.Run("fail to get room", func() {
-		ctx := context.Background()
-		roomName := "test_room"
-		member := &MockMember{username: "user_1"}
-
-		s.mockRS.EXPECT().GetRoom(ctx, roomName).Return(nil, errors.New("get room error"))
-
-		err := s.service.RemoveMemberFromRoom(ctx, roomName, member)
-		s.Error(err)
-	})
-
-	s.Run("fail to remove member from room", func() {
-		ctx := context.Background()
-		roomName := "test_room"
-		member := &MockMember{username: "user_1"}
-		room := &room2.Room{}
-
-		s.mockRS.EXPECT().GetRoom(ctx, roomName).Return(room, nil)
-		s.mockRM.EXPECT().RemoveMember(ctx, room, member).Return(errors.New("remove member error"))
-
-		err := s.service.RemoveMemberFromRoom(ctx, roomName, member)
-		s.Error(err)
-	})
-}
-
-func (s *ServiceSuite) TestSendMessageToRoom() {
-	s.Run("send message to existing room", func() {
-		ctx := context.Background()
-		roomName := "test_room"
-		member := &MockMember{username: "user_1"}
-		message := "hello, world!"
-		room := &room2.Room{}
-
-		s.mockRS.EXPECT().GetRoom(ctx, roomName).Return(room, nil)
-		s.mockRM.EXPECT().SendMessage(ctx, room, member, message).Return(nil)
-
-		err := s.service.SendMessageToRoom(ctx, roomName, member, message)
-		s.NoError(err)
-	})
-
-	s.Run("send message to non-existing room", func() {
-		ctx := context.Background()
-		roomName := "test_room"
+		roomName := "non_existent_room"
 		member := &MockMember{username: "user_1"}
 		message := "hello, world!"
 
-		s.mockRS.EXPECT().GetRoom(ctx, roomName).Return(nil, nil)
+		// When
+		err := s.svc.SendMessage(ctx, roomName, member, message)
 
-		err := s.service.SendMessageToRoom(ctx, roomName, member, message)
+		// Then
 		s.Error(err)
 	})
 
-	s.Run("fail to get room", func() {
+	s.Run("member not found", func() {
+		// Given
 		ctx := context.Background()
 		roomName := "test_room"
+		_, _ = s.svc.CreateRoom(ctx, roomName)
 		member := &MockMember{username: "user_1"}
 		message := "hello, world!"
 
-		s.mockRS.EXPECT().GetRoom(ctx, roomName).Return(nil, errors.New("get room error"))
+		// When
+		err := s.svc.SendMessage(ctx, roomName, member, message)
 
-		err := s.service.SendMessageToRoom(ctx, roomName, member, message)
+		// Then
 		s.Error(err)
 	})
 
-	s.Run("fail to send message to room", func() {
+	s.Run("no data races", func() {
+		// Given
 		ctx := context.Background()
 		roomName := "test_room"
+		_, _ = s.svc.CreateRoom(ctx, roomName)
 		member := &MockMember{username: "user_1"}
+		_ = s.svc.AddMember(ctx, roomName, member)
 		message := "hello, world!"
-		room := &room2.Room{}
 
-		s.mockRS.EXPECT().GetRoom(ctx, roomName).Return(room, nil)
-		s.mockRM.EXPECT().SendMessage(ctx, room, member, message).Return(errors.New("send message error"))
+		// When
+		wg := sync.WaitGroup{}
+		for range 1000 {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				_ = s.svc.SendMessage(ctx, roomName, member, message)
+			}()
+		}
+		wg.Wait()
 
-		err := s.service.SendMessageToRoom(ctx, roomName, member, message)
-		s.Error(err)
+		// Then
+		// Checked by running the test with -race flag
 	})
 }
 
 type MockMember struct {
 	username         string
-	lastNotification room2.Event
+	lastNotification chat.Event
 }
 
 func (m *MockMember) Username() string {
 	return m.username
 }
 
-func (m *MockMember) Notify(event room2.Event) {
+func (m *MockMember) Notify(event chat.Event) {
 	m.lastNotification = event
 }

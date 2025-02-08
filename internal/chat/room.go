@@ -1,10 +1,9 @@
-package room
+package chat
 
 import (
 	"context"
 	"fmt"
 	"slices"
-	"sync"
 )
 
 type Member interface {
@@ -15,8 +14,7 @@ type Member interface {
 type Room struct {
 	name string
 
-	mu      sync.Mutex
-	members map[string]Member
+	members map[string]Member // protected from concurrent access by the service layer
 }
 
 func (r *Room) Name() string {
@@ -24,9 +22,6 @@ func (r *Room) Name() string {
 }
 
 func (r *Room) getMembers(ctx context.Context) ([]Member, error) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-
 	members := make([]Member, 0, len(r.members))
 	for _, member := range r.members {
 		members = append(members, member)
@@ -36,9 +31,6 @@ func (r *Room) getMembers(ctx context.Context) ([]Member, error) {
 }
 
 func (r *Room) addMember(ctx context.Context, member Member) error {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-
 	_, ok := r.members[member.Username()]
 	if ok {
 		return fmt.Errorf("member already exists")
@@ -55,9 +47,6 @@ func (r *Room) addMember(ctx context.Context, member Member) error {
 }
 
 func (r *Room) removeMember(ctx context.Context, member Member) error {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-
 	if _, ok := r.members[member.Username()]; !ok {
 		return fmt.Errorf("not a room member")
 	}
@@ -73,9 +62,6 @@ func (r *Room) removeMember(ctx context.Context, member Member) error {
 }
 
 func (r *Room) sendMessage(ctx context.Context, member Member, message string) error {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-
 	_, ok := r.members[member.Username()]
 	if !ok {
 		return fmt.Errorf("not a room member")

@@ -5,17 +5,17 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"practice-run/internal/room"
+	"practice-run/internal/chat"
 
 	"github.com/gorilla/websocket"
 )
 
 //go:generate mockgen -destination mocks/chat_service_mock.go -mock_names chatService=ChatService -package mocks . chatService
 type chatService interface {
-	CreateRoom(ctx context.Context, roomName string) error
-	AddMemberToRoom(ctx context.Context, roomName string, member room.Member) error
-	RemoveMemberFromRoom(ctx context.Context, roomName string, member room.Member) error
-	SendMessageToRoom(ctx context.Context, roomName string, member room.Member, message string) error
+	CreateRoom(ctx context.Context, roomName string) (*chat.Room, error)
+	AddMember(ctx context.Context, roomName string, member chat.Member) error
+	RemoveMember(ctx context.Context, roomName string, member chat.Member) error
+	SendMessage(ctx context.Context, roomName string, member chat.Member, message string) error
 }
 
 type WebSocketHandler struct {
@@ -93,7 +93,7 @@ func (h *WebSocketHandler) handlerMessage(ctx context.Context, m *ChatMember, ms
 }
 
 func (h *WebSocketHandler) handleCreateRoom(ctx context.Context, m *ChatMember, cmd *CreateRoomCommand) {
-	err := h.chatService.CreateRoom(ctx, cmd.RoomName)
+	_, err := h.chatService.CreateRoom(ctx, cmd.RoomName)
 	if err != nil {
 		log.Printf("Debug: %s failed to create room: %v", m.Username(), err)
 		m.WriteMessage(fmt.Sprintf("failed to create #%s: %v", cmd.RoomName, err))
@@ -104,7 +104,7 @@ func (h *WebSocketHandler) handleCreateRoom(ctx context.Context, m *ChatMember, 
 }
 
 func (h *WebSocketHandler) handleJoinRoom(ctx context.Context, m *ChatMember, cmd *JoinRoomCommand) {
-	err := h.chatService.AddMemberToRoom(ctx, cmd.RoomName, m)
+	err := h.chatService.AddMember(ctx, cmd.RoomName, m)
 	if err != nil {
 		log.Printf("Debug: %s failed to join room: %v", m.Username(), err)
 		m.WriteMessage(fmt.Sprintf("failed to join #%s: %v", cmd.RoomName, err))
@@ -115,7 +115,7 @@ func (h *WebSocketHandler) handleJoinRoom(ctx context.Context, m *ChatMember, cm
 }
 
 func (h *WebSocketHandler) handleLeaveRoom(ctx context.Context, m *ChatMember, cmd *LeaveRoomCommand) {
-	err := h.chatService.RemoveMemberFromRoom(ctx, cmd.RoomName, m)
+	err := h.chatService.RemoveMember(ctx, cmd.RoomName, m)
 	if err != nil {
 		log.Printf("Debug: %s failed to leave room: %v", m.Username(), err)
 		m.WriteMessage(fmt.Sprintf("failed to leave #%s: %v", cmd.RoomName, err))
@@ -126,7 +126,7 @@ func (h *WebSocketHandler) handleLeaveRoom(ctx context.Context, m *ChatMember, c
 }
 
 func (h *WebSocketHandler) handleSendMessage(ctx context.Context, m *ChatMember, cmd *SendMessageCommand) {
-	err := h.chatService.SendMessageToRoom(ctx, cmd.RoomName, m, cmd.Message)
+	err := h.chatService.SendMessage(ctx, cmd.RoomName, m, cmd.Message)
 	if err != nil {
 		log.Printf("Debug: %s failed to send message: %v", m.Username(), err)
 		m.WriteMessage(fmt.Sprintf("failed to send message: %v", err))

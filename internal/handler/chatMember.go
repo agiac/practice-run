@@ -3,7 +3,7 @@ package handler
 import (
 	"fmt"
 	"log"
-	"practice-run/internal/room"
+	"practice-run/internal/chat"
 	"sync"
 
 	"github.com/gorilla/websocket"
@@ -34,37 +34,37 @@ func (m *ChatMember) WriteMessage(message string) {
 	}
 }
 
-func (m *ChatMember) Notify(event room.Event) {
+func (m *ChatMember) Notify(event chat.Event) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
 	m.handleEvent(event)
 }
 
-func (m *ChatMember) handleEvent(event room.Event) {
+func (m *ChatMember) handleEvent(event chat.Event) {
 	eventName := event.Name()
 
 	switch eventName {
-	case room.MessageReceivedEventName:
-		m.handleMessageReceivedEvent(event.(*room.MessageReceivedEvent))
-	case room.MemberJoinedEventName:
-		m.handleMemberJoinedEvent(event.(*room.MemberJoinedEvent))
-	case room.MemberLeftEventName:
-		m.handleMemberLeftEvent(event.(*room.MemberLeftEvent))
+	case chat.MessageReceivedEventName:
+		m.handleMessageReceivedEvent(event.(*chat.MessageReceivedEvent))
+	case chat.MemberJoinedEventName:
+		m.handleMemberJoinedEvent(event.(*chat.MemberJoinedEvent))
+	case chat.MemberLeftEventName:
+		m.handleMemberLeftEvent(event.(*chat.MemberLeftEvent))
 	default:
 		log.Printf("Error: failed to notify member %s: unknown event %s", m.username, eventName)
 	}
 }
 
-func (m *ChatMember) handleMessageReceivedEvent(e *room.MessageReceivedEvent) {
+func (m *ChatMember) handleMessageReceivedEvent(e *chat.MessageReceivedEvent) {
 	m.notify(fmt.Sprintf("#%s: @%s: %s", e.RoomName, e.SenderName, e.Message))
 }
 
-func (m *ChatMember) handleMemberJoinedEvent(e *room.MemberJoinedEvent) {
+func (m *ChatMember) handleMemberJoinedEvent(e *chat.MemberJoinedEvent) {
 	m.notify(fmt.Sprintf("#%s: @%s joined", e.RoomName, e.MemberName))
 }
 
-func (m *ChatMember) handleMemberLeftEvent(e *room.MemberLeftEvent) {
+func (m *ChatMember) handleMemberLeftEvent(e *chat.MemberLeftEvent) {
 	m.notify(fmt.Sprintf("#%s: @%s left", e.RoomName, e.MemberName))
 }
 
