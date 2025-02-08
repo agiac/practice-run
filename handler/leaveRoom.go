@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"fmt"
+	"practice-run/chat"
 	"regexp"
 )
 
@@ -30,5 +31,13 @@ func (c *LeaveRoomCommand) Execute(ctx context.Context, m *ChatMember, service c
 
 	m.WriteMessage(fmt.Sprintf("you've left #%s", c.RoomName))
 
+	return nil
+}
+
+type MemberLeftHandler struct{}
+
+func (h *MemberLeftHandler) Handle(event chat.Event, m *ChatMember) error {
+	e := event.(*chat.MemberLeftEvent)
+	m.WriteMessage(fmt.Sprintf("#%s: @%s left", e.RoomName, e.MemberName))
 	return nil
 }

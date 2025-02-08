@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"fmt"
+	"practice-run/chat"
 	"regexp"
 )
 
@@ -31,5 +32,13 @@ func (c *SendMessageCommand) Execute(ctx context.Context, m *ChatMember, service
 
 	m.WriteMessage(fmt.Sprintf("#%s: @%s: %s", c.RoomName, m.Username(), c.Message))
 
+	return nil
+}
+
+type MessageReceivedHandler struct{}
+
+func (h *MessageReceivedHandler) Handle(event chat.Event, m *ChatMember) error {
+	e := event.(*chat.MessageReceivedEvent)
+	m.WriteMessage(fmt.Sprintf("#%s: @%s: %s", e.RoomName, e.SenderName, e.Message))
 	return nil
 }

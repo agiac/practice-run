@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"sync"
 
 	"github.com/gorilla/websocket"
 )
@@ -12,7 +13,9 @@ import (
 type Client struct {
 	s        *Suite
 	userName string
-	conn     *websocket.Conn
+
+	mu   sync.Mutex
+	conn *websocket.Conn
 }
 
 func NewClient(s *Suite, userName string) *Client {
@@ -20,6 +23,10 @@ func NewClient(s *Suite, userName string) *Client {
 
 	conn, _, err := websocket.DefaultDialer.Dial(strings.ReplaceAll(s.server.URL, "http", "ws"), http.Header{
 		"Authorization": []string{fmt.Sprintf("Basic %s", base64.StdEncoding.EncodeToString([]byte(userName+":password")))},
+	})
+
+	s.T().Cleanup(func() {
+		s.Require().NoError(conn.Close())
 	})
 
 	s.Require().NoError(err)
@@ -32,6 +39,9 @@ func NewClient(s *Suite, userName string) *Client {
 }
 
 func (c *Client) WriteMessage(msg string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
 	err := c.conn.WriteMessage(websocket.TextMessage, []byte(msg))
 	c.s.Require().NoError(err)
 
@@ -39,6 +49,9 @@ func (c *Client) WriteMessage(msg string) {
 }
 
 func (c *Client) ReadMessage() string {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
 	_, msg, err := c.conn.ReadMessage()
 	c.s.Require().NoError(err)
 

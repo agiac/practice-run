@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"fmt"
+	"practice-run/chat"
 	"regexp"
 )
 
@@ -30,5 +31,13 @@ func (c *JoinRoomCommand) Execute(ctx context.Context, m *ChatMember, service ch
 
 	m.WriteMessage(fmt.Sprintf("you've joined #%s", c.RoomName))
 
+	return nil
+}
+
+type MemberJoinedHandler struct{}
+
+func (h *MemberJoinedHandler) Handle(event chat.Event, m *ChatMember) error {
+	e := event.(*chat.MemberJoinedEvent)
+	m.WriteMessage(fmt.Sprintf("#%s: @%s joined", e.RoomName, e.MemberName))
 	return nil
 }
