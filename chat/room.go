@@ -1,7 +1,6 @@
 package chat
 
 import (
-	"context"
 	"fmt"
 	"slices"
 )
@@ -21,7 +20,7 @@ func (r *Room) Name() string {
 	return r.name
 }
 
-func (r *Room) getMembers(ctx context.Context) ([]Member, error) {
+func (r *Room) getMembers() ([]Member, error) {
 	members := make([]Member, 0, len(r.members))
 	for _, member := range r.members {
 		members = append(members, member)
@@ -30,7 +29,7 @@ func (r *Room) getMembers(ctx context.Context) ([]Member, error) {
 	return members, nil
 }
 
-func (r *Room) addMember(ctx context.Context, member Member) error {
+func (r *Room) addMember(member Member) error {
 	_, ok := r.members[member.Username()]
 	if ok {
 		return fmt.Errorf("member already exists")
@@ -46,7 +45,7 @@ func (r *Room) addMember(ctx context.Context, member Member) error {
 	return nil
 }
 
-func (r *Room) removeMember(ctx context.Context, member Member) error {
+func (r *Room) removeMember(member Member) error {
 	if _, ok := r.members[member.Username()]; !ok {
 		return fmt.Errorf("not a room member")
 	}
@@ -61,7 +60,7 @@ func (r *Room) removeMember(ctx context.Context, member Member) error {
 	return nil
 }
 
-func (r *Room) sendMessage(ctx context.Context, member Member, message string) error {
+func (r *Room) sendMessage(member Member, message string) error {
 	_, ok := r.members[member.Username()]
 	if !ok {
 		return fmt.Errorf("not a room member")

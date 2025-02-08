@@ -1,3 +1,5 @@
+.PHONY: start test generate
+
 start:
 	go run .
 

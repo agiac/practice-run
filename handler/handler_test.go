@@ -106,7 +106,7 @@ func (s *Suite) TestCreateRoom() {
 		_, msg, _ := conn.ReadMessage()
 
 		// Then
-		s.Equal(`failed to create #room_1: some error`, string(msg))
+		s.Equal(`error: failed to create #room_1: some error`, string(msg))
 	})
 }
 
@@ -146,7 +146,7 @@ func (s *Suite) TestJoinRoom() {
 		_, msg, _ := conn.ReadMessage()
 
 		// Then
-		s.Equal(`failed to join #room_1: some error`, string(msg))
+		s.Equal(`error: failed to join #room_1: some error`, string(msg))
 	})
 }
 
@@ -197,7 +197,7 @@ func (s *Suite) TestLeaveRoom() {
 
 		// Then
 		s.Equal(`you've joined #room_1`, string(msg1))
-		s.Equal(`failed to leave #room_1: some error`, string(msg2))
+		s.Equal(`error: failed to leave #room_1: some error`, string(msg2))
 	})
 }
 
@@ -243,7 +243,7 @@ func (s *Suite) TestSendMessage() {
 
 		// Then
 		s.Equal(`you've joined #room_1`, string(msg1))
-		s.Equal(`failed to send message: some error`, string(msg2))
+		s.Equal(`error: failed to send message: some error`, string(msg2))
 	})
 }
 

@@ -58,7 +58,7 @@ func (r *Service) AddMember(ctx context.Context, roomName string, member Member)
 		return fmt.Errorf("room not found")
 	}
 
-	err := room.addMember(ctx, member)
+	err := room.addMember(member)
 	if err != nil {
 		return fmt.Errorf("failed to add member to room: %w", err)
 	}
@@ -75,7 +75,7 @@ func (r *Service) RemoveMember(ctx context.Context, roomName string, member Memb
 		return fmt.Errorf("room not found")
 	}
 
-	err := room.removeMember(ctx, member)
+	err := room.removeMember(member)
 	if err != nil {
 		return fmt.Errorf("failed to remove member from room: %w", err)
 	}
@@ -92,7 +92,7 @@ func (r *Service) GetMembers(ctx context.Context, roomName string) ([]Member, er
 		return nil, fmt.Errorf("room not found")
 	}
 
-	members, err := room.getMembers(ctx)
+	members, err := room.getMembers()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get members: %w", err)
 	}
@@ -109,7 +109,7 @@ func (r *Service) SendMessage(ctx context.Context, roomName string, member Membe
 		return fmt.Errorf("room not found")
 	}
 
-	err := room.sendMessage(ctx, member, message)
+	err := room.sendMessage(member, message)
 	if err != nil {
 		return fmt.Errorf("failed to send message to room: %w", err)
 	}
