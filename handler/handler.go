@@ -66,72 +66,16 @@ func (h *WebSocketHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 
-		msg, err := ParseMessage(string(raw))
+		cmd, err := ParseMessage(string(raw))
 		if err != nil {
 			member.WriteMessage(fmt.Sprintf("error: bad request: failed to parse message: %v", err))
 			continue
 		}
 
-		h.handlerMessage(ctx, member, msg)
+		err = cmd.Execute(ctx, member, h.chatService)
+		if err != nil {
+			log.Printf("Debug: failed to execute command %s %+v: %v", cmd.Name(), cmd, err)
+			member.WriteMessage(fmt.Sprintf("error: %v", err))
+		}
 	}
-}
-
-func (h *WebSocketHandler) handlerMessage(ctx context.Context, m *ChatMember, msg interface{}) {
-	switch c := msg.(type) {
-	case *CreateRoomCommand:
-		h.handleCreateRoom(ctx, m, c)
-	case *JoinRoomCommand:
-		h.handleJoinRoom(ctx, m, c)
-	case *LeaveRoomCommand:
-		h.handleLeaveRoom(ctx, m, c)
-	case *SendMessageCommand:
-		h.handleSendMessage(ctx, m, c)
-	default:
-		log.Printf("Error: unsupported message type: %T", msg)
-		m.WriteMessage("server error")
-	}
-}
-
-func (h *WebSocketHandler) handleCreateRoom(ctx context.Context, m *ChatMember, cmd *CreateRoomCommand) {
-	_, err := h.chatService.CreateRoom(ctx, cmd.RoomName)
-	if err != nil {
-		log.Printf("Debug: %s failed to create room: %v", m.Username(), err)
-		m.WriteMessage(fmt.Sprintf("error: failed to create #%s: %v", cmd.RoomName, err))
-		return
-	}
-
-	m.WriteMessage(fmt.Sprintf("#%s created", cmd.RoomName))
-}
-
-func (h *WebSocketHandler) handleJoinRoom(ctx context.Context, m *ChatMember, cmd *JoinRoomCommand) {
-	err := h.chatService.AddMember(ctx, cmd.RoomName, m)
-	if err != nil {
-		log.Printf("Debug: %s failed to join room: %v", m.Username(), err)
-		m.WriteMessage(fmt.Sprintf("error: failed to join #%s: %v", cmd.RoomName, err))
-		return
-	}
-
-	m.WriteMessage(fmt.Sprintf("you've joined #%s", cmd.RoomName))
-}
-
-func (h *WebSocketHandler) handleLeaveRoom(ctx context.Context, m *ChatMember, cmd *LeaveRoomCommand) {
-	err := h.chatService.RemoveMember(ctx, cmd.RoomName, m)
-	if err != nil {
-		log.Printf("Debug: %s failed to leave room: %v", m.Username(), err)
-		m.WriteMessage(fmt.Sprintf("error: failed to leave #%s: %v", cmd.RoomName, err))
-		return
-	}
-
-	m.WriteMessage(fmt.Sprintf("you've left #%s", cmd.RoomName))
-}
-
-func (h *WebSocketHandler) handleSendMessage(ctx context.Context, m *ChatMember, cmd *SendMessageCommand) {
-	err := h.chatService.SendMessage(ctx, cmd.RoomName, m, cmd.Message)
-	if err != nil {
-		log.Printf("Debug: %s failed to send message: %v", m.Username(), err)
-		m.WriteMessage(fmt.Sprintf("error: failed to send message: %v", err))
-		return
-	}
-
-	m.WriteMessage(fmt.Sprintf("#%s: @%s: %s", cmd.RoomName, m.Username(), cmd.Message))
 }
