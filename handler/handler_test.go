@@ -43,7 +43,7 @@ func (s *Suite) TestAuthentication() {
 		defer server.Close()
 
 		// When
-		cn1, res, err := websocket.DefaultDialer.Dial(wsUrl(server), nil)
+		cn1, res, err := websocket.DefaultDialer.Dial(wsUrl(server, ""), nil)
 
 		// Then
 		s.Error(err)
@@ -57,7 +57,7 @@ func (s *Suite) TestAuthentication() {
 		defer server.Close()
 
 		// When
-		conn, res, err := websocket.DefaultDialer.Dial(wsUrl(server), http.Header{
+		conn, res, err := websocket.DefaultDialer.Dial(wsUrl(server, "user_1"), http.Header{
 			"Authorization": []string{fmt.Sprintf("Basic %s", base64.StdEncoding.EncodeToString([]byte("user_1:password")))},
 		})
 
@@ -69,9 +69,7 @@ func (s *Suite) TestAuthentication() {
 }
 
 func (s *Suite) createConnection(server *httptest.Server, userName string) *websocket.Conn {
-	conn, res, err := websocket.DefaultDialer.Dial(wsUrl(server), http.Header{
-		"Authorization": []string{fmt.Sprintf("Basic %s", base64.StdEncoding.EncodeToString([]byte(userName+":password")))},
-	})
+	conn, res, err := websocket.DefaultDialer.Dial(wsUrl(server, userName), nil)
 
 	s.Require().NoError(err)
 	s.Require().Equal(http.StatusSwitchingProtocols, res.StatusCode)
@@ -85,6 +83,6 @@ func (s *Suite) writeMessage(conn *websocket.Conn, message string) {
 	s.NoError(err)
 }
 
-func wsUrl(server *httptest.Server) string {
-	return strings.ReplaceAll(server.URL, "http", "ws")
+func wsUrl(server *httptest.Server, username string) string {
+	return strings.ReplaceAll(server.URL, "http", "ws") + "?username=" + username
 }

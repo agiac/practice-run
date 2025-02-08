@@ -30,14 +30,13 @@ func NewWebSocketHandler(upgrader *websocket.Upgrader, chatService chatService) 
 func (h *WebSocketHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	username, _, ok := r.BasicAuth()
-	if !ok {
-		log.Printf("Debug: unauthorized request")
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+	// Mocking the authentication
+	username := r.URL.Query().Get("username")
+	if username == "" {
+		log.Printf("Debug: missing username")
+		http.Error(w, "missing username", http.StatusUnauthorized)
 		return
 	}
-
-	// skip authentication for now
 
 	conn, err := h.upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -54,10 +53,15 @@ func (h *WebSocketHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	member := NewChatMember(username, conn)
 
+	log.Printf("Debug: new connection from %s", username)
+
 	for {
 		mt, raw, err := conn.ReadMessage()
-		if err != nil {
-			log.Printf("Error: failed to read message, breaking connection: %v", err)
+		if err != nil && websocket.IsCloseError(err, websocket.CloseNormalClosure) {
+			log.Printf("Debug: connection closed: %v", err)
+			break
+		} else if err != nil {
+			log.Printf("Error: failed to read message, connection lost: %v", err)
 			break
 		}
 

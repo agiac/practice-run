@@ -40,7 +40,7 @@ func (s *Suite) TestChatMember() {
 	defer server.Close()
 
 	// When
-	cn, _, err := websocket.DefaultDialer.Dial(wsUrl(server), nil)
+	cn, _, err := websocket.DefaultDialer.Dial(wsUrl(server, "member_1"), nil)
 	s.Require().NoError(err)
 	defer cn.Close()
 

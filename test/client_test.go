@@ -1,9 +1,7 @@
 package test
 
 import (
-	"encoding/base64"
 	"fmt"
-	"net/http"
 	"strings"
 	"sync"
 
@@ -21,15 +19,13 @@ type Client struct {
 func NewClient(s *Suite, userName string) *Client {
 	s.T().Helper()
 
-	conn, _, err := websocket.DefaultDialer.Dial(strings.ReplaceAll(s.server.URL, "http", "ws"), http.Header{
-		"Authorization": []string{fmt.Sprintf("Basic %s", base64.StdEncoding.EncodeToString([]byte(userName+":password")))},
-	})
+	conn, _, err := websocket.DefaultDialer.Dial(strings.ReplaceAll(s.server.URL, "http", "ws")+"?username="+userName, nil)
+
+	s.Require().NoError(err)
 
 	s.T().Cleanup(func() {
 		s.Require().NoError(conn.Close())
 	})
-
-	s.Require().NoError(err)
 
 	return &Client{
 		userName: userName,
@@ -45,7 +41,7 @@ func (c *Client) WriteMessage(msg string) {
 	err := c.conn.WriteMessage(websocket.TextMessage, []byte(msg))
 	c.s.Require().NoError(err)
 
-	c.s.T().Log(fmt.Sprintf("%s client sent: %s", c.userName, msg))
+	c.s.T().Log(fmt.Sprintf("\u001B[31m%s > \u001B[0m%s", c.userName, msg))
 }
 
 func (c *Client) ReadMessage() string {
@@ -55,7 +51,7 @@ func (c *Client) ReadMessage() string {
 	_, msg, err := c.conn.ReadMessage()
 	c.s.Require().NoError(err)
 
-	c.s.T().Log(fmt.Sprintf("%s client received: %s", c.userName, string(msg)))
+	c.s.T().Log(fmt.Sprintf("\033[34m%s < \u001B[0m%s", c.userName, string(msg)))
 
 	return string(msg)
 }
