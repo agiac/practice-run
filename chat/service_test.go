@@ -2,7 +2,7 @@ package chat_test
 
 import (
 	"context"
-	"practice-run/internal/chat"
+	chat2 "practice-run/chat"
 	"sync"
 	"testing"
 
@@ -11,7 +11,7 @@ import (
 
 type Suite struct {
 	suite.Suite
-	svc *chat.Service
+	svc *chat2.Service
 }
 
 func TestSuite(t *testing.T) {
@@ -19,7 +19,7 @@ func TestSuite(t *testing.T) {
 }
 
 func (s *Suite) SetupSubTest() {
-	s.svc = chat.NewService()
+	s.svc = chat2.NewService()
 }
 
 func (s *Suite) TestCreateRoom() {
@@ -317,13 +317,13 @@ func (s *Suite) TestSendMessage() {
 
 type MockMember struct {
 	username         string
-	lastNotification chat.Event
+	lastNotification chat2.Event
 }
 
 func (m *MockMember) Username() string {
 	return m.username
 }
 
-func (m *MockMember) Notify(event chat.Event) {
+func (m *MockMember) Notify(event chat2.Event) {
 	m.lastNotification = event
 }

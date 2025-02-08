@@ -3,7 +3,7 @@ package handler
 import (
 	"fmt"
 	"log"
-	"practice-run/internal/chat"
+	"practice-run/chat"
 	"sync"
 
 	"github.com/gorilla/websocket"

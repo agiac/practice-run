@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"practice-run/internal/chat"
+	"practice-run/chat"
 
 	"github.com/gorilla/websocket"
 )
@@ -62,13 +62,13 @@ func (h *WebSocketHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if mt != websocket.TextMessage {
-			member.WriteMessage("bad request: only text messages are supported")
+			member.WriteMessage("error: bad request: only text messages are supported")
 			continue
 		}
 
 		msg, err := ParseMessage(string(raw))
 		if err != nil {
-			member.WriteMessage(fmt.Sprintf("bad request: failed to parse message: %v", err))
+			member.WriteMessage(fmt.Sprintf("error: bad request: failed to parse message: %v", err))
 			continue
 		}
 
@@ -96,7 +96,7 @@ func (h *WebSocketHandler) handleCreateRoom(ctx context.Context, m *ChatMember, 
 	_, err := h.chatService.CreateRoom(ctx, cmd.RoomName)
 	if err != nil {
 		log.Printf("Debug: %s failed to create room: %v", m.Username(), err)
-		m.WriteMessage(fmt.Sprintf("failed to create #%s: %v", cmd.RoomName, err))
+		m.WriteMessage(fmt.Sprintf("error: failed to create #%s: %v", cmd.RoomName, err))
 		return
 	}
 
@@ -107,7 +107,7 @@ func (h *WebSocketHandler) handleJoinRoom(ctx context.Context, m *ChatMember, cm
 	err := h.chatService.AddMember(ctx, cmd.RoomName, m)
 	if err != nil {
 		log.Printf("Debug: %s failed to join room: %v", m.Username(), err)
-		m.WriteMessage(fmt.Sprintf("failed to join #%s: %v", cmd.RoomName, err))
+		m.WriteMessage(fmt.Sprintf("error: failed to join #%s: %v", cmd.RoomName, err))
 		return
 	}
 
@@ -118,7 +118,7 @@ func (h *WebSocketHandler) handleLeaveRoom(ctx context.Context, m *ChatMember, c
 	err := h.chatService.RemoveMember(ctx, cmd.RoomName, m)
 	if err != nil {
 		log.Printf("Debug: %s failed to leave room: %v", m.Username(), err)
-		m.WriteMessage(fmt.Sprintf("failed to leave #%s: %v", cmd.RoomName, err))
+		m.WriteMessage(fmt.Sprintf("error: failed to leave #%s: %v", cmd.RoomName, err))
 		return
 	}
 
@@ -129,7 +129,7 @@ func (h *WebSocketHandler) handleSendMessage(ctx context.Context, m *ChatMember,
 	err := h.chatService.SendMessage(ctx, cmd.RoomName, m, cmd.Message)
 	if err != nil {
 		log.Printf("Debug: %s failed to send message: %v", m.Username(), err)
-		m.WriteMessage(fmt.Sprintf("failed to send message: %v", err))
+		m.WriteMessage(fmt.Sprintf("error: failed to send message: %v", err))
 		return
 	}
 

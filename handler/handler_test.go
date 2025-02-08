@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"practice-run/internal/chat"
-	"practice-run/internal/handler"
-	"practice-run/internal/handler/mocks"
+	"practice-run/chat"
+	"practice-run/handler"
+	"practice-run/handler/mocks"
 	"strings"
 	"testing"
 
