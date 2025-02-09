@@ -61,7 +61,7 @@ func (h *WebSocketHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			log.Printf("Debug: connection closed: %v", err)
 			break
 		} else if err != nil {
-			log.Printf("Error: failed to read message, connection lost: %v", err)
+			log.Printf("Error: connection closed: %v", err)
 			break
 		}
 
