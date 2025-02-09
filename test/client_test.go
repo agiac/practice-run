@@ -23,10 +23,6 @@ func NewClient(s *Suite, userName string) *Client {
 
 	s.Require().NoError(err)
 
-	s.T().Cleanup(func() {
-		s.Require().NoError(conn.Close())
-	})
-
 	return &Client{
 		userName: userName,
 		conn:     conn,

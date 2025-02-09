@@ -1,8 +1,6 @@
 package handler_test
 
 import (
-	"encoding/base64"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"practice-run/handler"
@@ -26,13 +24,13 @@ func TestSuite(t *testing.T) {
 	suite.Run(t, new(Suite))
 }
 
-func (s *Suite) SetupTest() {
+func (s *Suite) SetupSubTest() {
 	s.ctrl = gomock.NewController(s.T())
 	s.chatService = mocks.NewChatService(s.ctrl)
 	s.handler = handler.NewWebSocketHandler(&websocket.Upgrader{}, s.chatService)
 }
 
-func (s *Suite) TearDownTest() {
+func (s *Suite) TearDownSubTest() {
 	s.ctrl.Finish()
 }
 
@@ -57,9 +55,7 @@ func (s *Suite) TestAuthentication() {
 		defer server.Close()
 
 		// When
-		conn, res, err := websocket.DefaultDialer.Dial(wsUrl(server, "user_1"), http.Header{
-			"Authorization": []string{fmt.Sprintf("Basic %s", base64.StdEncoding.EncodeToString([]byte("user_1:password")))},
-		})
+		conn, res, err := websocket.DefaultDialer.Dial(wsUrl(server, "user_1"), nil)
 
 		// Then
 		s.NoError(err)

@@ -30,3 +30,4 @@ Generate mocks:
 - Proper authentication
 - Telemetry
 - Persisting messages
+- Ping/pong to keep connections alive

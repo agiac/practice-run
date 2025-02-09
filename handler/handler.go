@@ -44,13 +44,6 @@ func (h *WebSocketHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	defer func(conn *websocket.Conn) {
-		err = conn.Close()
-		if err != nil {
-			log.Printf("Error: failed to close connection: %v", err)
-		}
-	}(conn)
-
 	member := NewChatMember(username, conn)
 
 	log.Printf("Debug: new connection from %s", username)

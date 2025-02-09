@@ -22,7 +22,7 @@ func (s *Suite) SetupSubTest() {
 	s.server = httptest.NewServer(provider.WebSocketHandler())
 }
 
-func (s *Suite) TearTest() {
+func (s *Suite) TearDownSubTest() {
 	s.server.Close()
 }
 
@@ -61,7 +61,7 @@ func (s *Suite) TestApp() {
 		client3.ExpectMessage("#room_1: @user_2 left")
 	})
 
-	s.Run("ok - concurrent", func() {
+	s.Run("ok concurrent", func() {
 		client1 := NewClient(s, "user_1")
 		client2 := NewClient(s, "user_2")
 		client3 := NewClient(s, "user_3")

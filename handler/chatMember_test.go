@@ -14,7 +14,6 @@ func (s *Suite) TestChatMember() {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		conn, err := (&websocket.Upgrader{}).Upgrade(w, r, nil)
 		s.Require().NoError(err)
-		defer conn.Close()
 
 		member := handler.NewChatMember("test", conn)
 
