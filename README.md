@@ -24,3 +24,9 @@ Generate mocks:
 ```shell
   make generate
 ```
+
+## Possible improvements
+
+- Proper authentication
+- Telemetry
+- Persisting messages
