@@ -34,6 +34,8 @@ func (c *Client) WriteMessage(msg string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
+	c.s.T().Helper()
+
 	err := c.conn.WriteMessage(websocket.TextMessage, []byte(msg))
 	c.s.Require().NoError(err)
 
@@ -43,6 +45,8 @@ func (c *Client) WriteMessage(msg string) {
 func (c *Client) ReadMessage() string {
 	c.mu.Lock()
 	defer c.mu.Unlock()
+
+	c.s.T().Helper()
 
 	_, msg, err := c.conn.ReadMessage()
 	c.s.Require().NoError(err)
@@ -62,32 +66,39 @@ func (c *Client) ExpectErrorMessage() {
 }
 
 func (c *Client) CreateRoomRaw(roomName string) {
+	c.s.T().Helper()
 	c.WriteMessage(fmt.Sprintf(`/create #%s`, roomName))
 }
 
 func (c *Client) CreateRoom(roomName string) {
+	c.s.T().Helper()
 	c.CreateRoomRaw(roomName)
 	c.ExpectMessage(fmt.Sprintf("#%s created", roomName))
 }
 
 func (c *Client) JoinRoomRaw(roomName string) {
+	c.s.T().Helper()
 	c.WriteMessage(fmt.Sprintf(`/join #%s`, roomName))
 }
 
 func (c *Client) JoinRoom(roomName string) {
+	c.s.T().Helper()
 	c.JoinRoomRaw(roomName)
 	c.ExpectMessage(fmt.Sprintf("you've joined #%s", roomName))
 }
 
 func (c *Client) LeaveRoomRaw(roomName string) {
+	c.s.T().Helper()
 	c.WriteMessage(fmt.Sprintf(`/leave #%s`, roomName))
 }
 
 func (c *Client) LeaveRoom(roomName string) {
+	c.s.T().Helper()
 	c.LeaveRoomRaw(roomName)
 	c.ExpectMessage(fmt.Sprintf("you've left #%s", roomName))
 }
 
 func (c *Client) SendMessage(roomName, message string) {
+	c.s.T().Helper()
 	c.WriteMessage(fmt.Sprintf(`/msg #%s %s`, roomName, message))
 }

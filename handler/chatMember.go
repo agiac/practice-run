@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	"log"
 	"practice-run/chat"
 	"sync"
@@ -34,6 +35,19 @@ func NewChatMember(username string, conn *websocket.Conn) *ChatMember {
 
 func (m *ChatMember) Username() string {
 	return m.username
+}
+
+func (m *ChatMember) ReadMessage() (string, error, bool) {
+	mt, raw, err := m.conn.ReadMessage()
+	if err != nil {
+		return "", fmt.Errorf("failed to read message: %w", err), false
+	}
+
+	if mt != websocket.TextMessage {
+		return "", fmt.Errorf("bad request: only text messages are supported"), true
+	}
+
+	return string(raw), nil, true
 }
 
 func (m *ChatMember) WriteMessage(message string) {
