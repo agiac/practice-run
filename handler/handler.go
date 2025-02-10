@@ -49,21 +49,13 @@ func (h *WebSocketHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Debug: new connection from %s", username)
 
 	for {
-		mt, raw, err := conn.ReadMessage()
-		if err != nil && websocket.IsCloseError(err, websocket.CloseNormalClosure) {
-			log.Printf("Debug: connection closed: %v", err)
-			break
-		} else if err != nil {
+		msg, err, ok := member.ReadMessage()
+		if !ok {
 			log.Printf("Error: connection closed: %v", err)
 			break
 		}
 
-		if mt != websocket.TextMessage {
-			member.WriteMessage("error: bad request: only text messages are supported")
-			continue
-		}
-
-		cmd, err := ParseMessage(string(raw))
+		cmd, err := ParseMessage(msg)
 		if err != nil {
 			member.WriteMessage(fmt.Sprintf("error: bad request: failed to parse message: %v", err))
 			continue
